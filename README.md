@@ -67,14 +67,14 @@ Parallel → onboarding_chatbot ← RAG over vector store for new devs
 |---|---|
 | **Agent Framework** | LangGraph (multi-agent, HITL, checkpointing) |
 | **Backend** | FastAPI + Python 3.12 |
-| **Frontend** | Next.js + Tailwind CSS |
-| **LLM** | Groq — llama-3.3-70b-versatile |
+| **Frontend** | Next.js + Tailwind CSS + Daisy UI|
+| **LLM** | Groq — openai/gpt-oss-120b |
 | **Embeddings** | Cohere embed-english-v3.0 |
 | **Vector DB** | Qdrant |
-| **Database** | PostgreSQL (Neon prod / Docker dev) |
+| **Database** | PostgreSQL (Neon prod ) |
 | **Cache** | Redis (Upstash) |
 | **Storage** | AWS S3 |
-| **Web Search** | Brave Search API |
+| **Web Search** | Tavily Search API |
 | **Observability** | LangSmith |
 | **Tool Protocol** | MCP (Model Context Protocol) |
 | **Auth** | JWT + GitHub OAuth |
@@ -234,7 +234,7 @@ http://localhost:8000/docs
 
 | Variable | Required Now | Description |
 |---|---|---|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string with `+asyncpg` |
+| `DATABASE_URL` | ✅ | Neon - PostgreSQL connection string with `+asyncpg` |
 | `JWT_SECRET_KEY` | ✅ | Random secret for JWT signing |
 | `ENCRYPTION_KEY` | ✅ | Fernet key for token encryption |
 | `GROQ_API_KEY` | ✅ | From [console.groq.com](https://console.groq.com) |
@@ -242,8 +242,8 @@ http://localhost:8000/docs
 | `GITHUB_CLIENT_ID` | ✅ | GitHub OAuth App |
 | `GITHUB_CLIENT_SECRET` | ✅ | GitHub OAuth App |
 | `COHERE_API_KEY` | ✅ | From [cohere.com](https://cohere.com) |
-| `BRAVE_SEARCH_API_KEY` | ✅ | From [brave.com/search/api](https://brave.com/search/api) |
-| `REDIS_URL` | ✅ | Upstash Redis URL |
+| `TAVILY_API_KEY` | ✅ | From [tavily.com](https://brave.com/search/api) |
+| `REDIS_URL` | ✅ | From upstash REDIS URL |
 | `AWS_ACCESS_KEY_ID` | ⏳ Phase 7 | S3 storage |
 
 ---
@@ -268,8 +268,8 @@ User
 | **Phase 3** | LangGraph Core (State, Pipeline, HITL) | ✅ Complete |
 | **Phase 4** | Agents (Parser, Generator, Researcher, Chatbot) | ✅ Complete |
 | **Phase 5** | Webhooks + Redis Cache | ✅ Complete |
-| **Phase 6** | Next.js Frontend | 🔨 Completing!! |
-| **Phase 7** | Docker + ECR/ECS Fargate + CI/CD | 🔜 Soon |
+| **Phase 6** | Next.js Frontend | ✅ Complete |
+| **Phase 7** | Docker + ECR/ECS Fargate + CI/CD | 🔨 Completing!! |
 
 ---
 
