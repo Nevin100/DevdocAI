@@ -46,34 +46,21 @@ const STACK = [
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen bg-bg text-ink selection:bg-teal/25 selection:text-teal antialiased">
+    <main className="relative min-h-screen bg-base-100 text-base-content selection:bg-primary/25 selection:text-primary antialiased">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border/80">
-        {/* Subtle engineering grid backdrop */}
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30" />
+      <section className="relative overflow-hidden border-b border-base-content/10">
+        {/* Subtle dynamic grid backdrop */}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] bg-[size:4rem_4rem] text-base-content/[0.04] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
 
-        <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-16 sm:pb-28 sm:pt-24">
-          {/* Release Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs text-muted backdrop-blur-md">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-teal" />
-            </span>
-            <span className="font-mono text-[11px] uppercase tracking-wider text-teal">
-              Engine v0.9
-            </span>
-            <span className="text-border">|</span>
-            <span>Deterministic docs with HITL review</span>
-          </div>
-
+        <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-12 sm:pb-28 sm:pt-24">
           {/* Heading */}
-          <h1 className="mt-7 max-w-4xl font-display text-4xl font-semibold tracking-tight text-ink sm:text-6xl sm:leading-[1.12]">
+          <h1 className="mt-7 max-w-4xl font-display text-4xl font-bold tracking-tight text-base-content sm:text-6xl sm:leading-[1.12]">
             Self-updating documentation, anchored directly in your code’s AST.
           </h1>
 
-          <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
+          <p className="mt-6 max-w-2xl text-base leading-relaxed text-base-content/70 sm:text-lg">
             Stop asking engineers to update stale wikis. DevDocAI listens to PR merges,
             extracts syntactic symbols, and writes accurate technical architecture drafts.
             Nothing ships without manual approval.
@@ -83,7 +70,7 @@ export default function Home() {
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal px-5 py-3 text-sm font-semibold text-bg shadow-sm transition hover:opacity-90 active:scale-95"
+              className="btn btn-primary rounded-xl px-5 normal-case font-semibold shadow-md shadow-primary/20 transition hover:brightness-110 active:scale-95"
             >
               <span>Connect GitHub repo</span>
               <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
@@ -97,21 +84,21 @@ export default function Home() {
 
             <Link
               href="#pipeline"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface/50 px-5 py-3 text-sm font-medium text-ink backdrop-blur-sm transition hover:border-muted-2 hover:bg-surface active:scale-95"
+              className="btn btn-outline rounded-xl border-base-content/20 bg-base-200/40 px-5 text-sm font-medium text-base-content normal-case backdrop-blur-sm transition hover:bg-base-200 hover:border-base-content/40 active:scale-95"
             >
               <span>Explore live pipeline trace</span>
-              <span className="font-mono text-[11px] text-muted">↓</span>
+              <span className="font-mono text-[11px] text-base-content/60">↓</span>
             </Link>
           </div>
 
           {/* Spec Badges */}
-          <div className="mt-14 grid grid-cols-1 gap-4 border-t border-border/70 pt-8 sm:grid-cols-3">
+          <div className="mt-14 grid grid-cols-1 gap-4 border-t border-base-content/10 pt-8 sm:grid-cols-3">
             {METRICS.map((item) => (
               <div key={item.value} className="flex flex-col">
-                <span className="font-mono text-lg font-bold text-ink sm:text-xl">
+                <span className="font-mono text-lg font-bold text-base-content sm:text-xl">
                   {item.value}
                 </span>
-                <span className="mt-1 text-xs text-muted leading-relaxed">
+                <span className="mt-1 text-xs text-base-content/70 leading-relaxed">
                   {item.label}
                 </span>
               </div>
@@ -121,21 +108,21 @@ export default function Home() {
           {/* Interactive Pipeline Showcase */}
           <div
             id="pipeline"
-            className="mt-14 overflow-hidden rounded-2xl border border-border bg-surface/80 shadow-2xl backdrop-blur-md"
+            className="mt-14 overflow-hidden rounded-3xl border border-base-content/10 bg-base-200/50 shadow-2xl backdrop-blur-md"
           >
-            <div className="flex items-center justify-between border-b border-border bg-bg/60 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-base-content/10 bg-base-300/40 px-4 py-3">
               <div className="flex items-center gap-2">
-                <div className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
-                <div className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
-                <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
-                <span className="ml-2 font-mono text-[11px] text-muted">
+                <div className="h-2.5 w-2.5 rounded-full bg-error/80" />
+                <div className="h-2.5 w-2.5 rounded-full bg-warning/80" />
+                <div className="h-2.5 w-2.5 rounded-full bg-success/80" />
+                <span className="ml-2 font-mono text-[11px] text-base-content/60">
                   daemon: langgraph_worker_1
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] text-muted-2">EXECUTION POOL</span>
-                <span className="flex items-center gap-1.5 rounded-md border border-teal/30 bg-teal/10 px-2 py-0.5 font-mono text-[11px] text-teal">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal" />
+                <span className="font-mono text-[10px] text-base-content/50">EXECUTION POOL</span>
+                <span className="flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[11px] text-primary">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                   listening
                 </span>
               </div>
@@ -148,16 +135,16 @@ export default function Home() {
       </section>
 
       {/* Engineering Architecture / How it Works */}
-      <section className="border-b border-border/80" id="how">
+      <section className="border-b border-base-content/10" id="how">
         <div className="mx-auto max-w-5xl px-6 py-24">
           <div className="max-w-xl">
-            <span className="font-mono text-xs uppercase tracking-widest text-teal">
+            <span className="font-mono text-xs uppercase tracking-widest text-primary font-bold">
               System Architecture
             </span>
-            <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-base-content sm:text-4xl">
               Engineered for codebases that change every hour.
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
+            <p className="mt-3 text-sm leading-relaxed text-base-content/70 sm:text-base">
               A four-stage deterministic cycle that guarantees LLMs never invent
               endpoints, parameters, or behaviors that don’t exist in source.
             </p>
@@ -167,25 +154,25 @@ export default function Home() {
             {STEPS.map((step) => (
               <div
                 key={step.step}
-                className="group relative flex flex-col justify-between rounded-2xl border border-border bg-surface/50 p-6 transition duration-200 hover:border-muted-2 hover:bg-surface/80"
+                className="group relative flex flex-col justify-between rounded-2xl border border-base-content/10 bg-base-200/40 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-base-200/80 hover:shadow-lg"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-semibold text-teal">
+                    <span className="font-mono text-xs font-bold text-primary">
                       {step.step}
                     </span>
-                    <span className="rounded-md border border-border bg-bg px-2 py-0.5 font-mono text-[10px] text-muted">
+                    <span className="rounded-md border border-base-content/10 bg-base-300/40 px-2 py-0.5 font-mono text-[10px] text-base-content/60">
                       {step.tag}
                     </span>
                   </div>
-                  <h3 className="mt-4 font-display text-lg font-semibold text-ink">
+                  <h3 className="mt-4 font-display text-lg font-bold text-base-content">
                     {step.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted">
+                  <p className="mt-2 text-sm leading-relaxed text-base-content/70">
                     {step.body}
                   </p>
                 </div>
-                <div className="mt-6 h-px w-full bg-border/40 transition group-hover:bg-teal/30" />
+                <div className="mt-6 h-px w-full bg-base-content/10 transition group-hover:bg-primary/30" />
               </div>
             ))}
           </div>
@@ -193,18 +180,18 @@ export default function Home() {
       </section>
 
       {/* Core Primitives / Tech Stack */}
-      <section className="border-b border-border/80 bg-surface/20">
+      <section className="border-b border-base-content/10 bg-base-200/30">
         <div className="mx-auto max-w-5xl px-6 py-20">
-          <div className="flex flex-col justify-between gap-4 border-b border-border/60 pb-8 sm:flex-row sm:items-end">
+          <div className="flex flex-col justify-between gap-4 border-b border-base-content/10 pb-8 sm:flex-row sm:items-end">
             <div>
-              <span className="font-mono text-xs uppercase tracking-widest text-muted">
+              <span className="font-mono text-xs uppercase tracking-widest text-base-content/50 font-semibold">
                 Zero Blackbox Magic
               </span>
-              <h3 className="mt-1 font-display text-xl font-semibold text-ink">
+              <h3 className="mt-1 font-display text-xl font-bold text-base-content">
                 Built on inspectable infrastructure
               </h3>
             </div>
-            <p className="font-mono text-xs text-muted-2">
+            <p className="font-mono text-xs text-base-content/50">
               All agent events stream directly to your logs
             </p>
           </div>
@@ -213,12 +200,12 @@ export default function Home() {
             {STACK.map((item) => (
               <div
                 key={item.name}
-                className="flex flex-col rounded-xl border border-border bg-surface p-3.5"
+                className="flex flex-col rounded-2xl border border-base-content/10 bg-base-100 p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md"
               >
-                <span className="font-mono text-xs font-semibold text-ink">
+                <span className="font-mono text-xs font-bold text-base-content">
                   {item.name}
                 </span>
-                <span className="mt-1 text-[11px] leading-tight text-muted">
+                <span className="mt-1 text-[11px] leading-tight text-base-content/65">
                   {item.desc}
                 </span>
               </div>
@@ -230,13 +217,13 @@ export default function Home() {
       {/* Bottom CTA Block */}
       <section className="relative overflow-hidden py-24">
         <div className="mx-auto max-w-5xl px-6 text-center">
-          <span className="font-mono text-xs uppercase tracking-widest text-teal">
+          <span className="font-mono text-xs uppercase tracking-widest text-primary font-bold">
             Immediate Setup
           </span>
-          <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink sm:text-5xl">
+          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-base-content sm:text-5xl">
             Never explain the same auth middleware twice.
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted sm:text-base">
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-base-content/70 sm:text-base">
             Point DevDocAI to your repository and receive comprehensive,
             syntax-checked docs in under 3 minutes.
           </p>
@@ -244,11 +231,11 @@ export default function Home() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-teal px-6 py-3 text-sm font-semibold text-bg shadow-sm transition hover:opacity-90 active:scale-95"
+              className="btn btn-primary rounded-xl px-6 text-sm font-semibold normal-case shadow-md shadow-primary/20 transition hover:brightness-110 active:scale-95"
             >
               <span>Get started with GitHub</span>
             </Link>
-            <span className="font-mono text-xs text-muted-2">
+            <span className="font-mono text-xs text-base-content/50">
               Free during public beta
             </span>
           </div>
@@ -256,11 +243,11 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-bg px-6 py-10">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 text-xs text-muted sm:flex-row">
+      <footer className="border-t border-base-content/10 bg-base-100 px-6 py-10">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 text-xs text-base-content/60 sm:flex-row">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-teal" />
-            <span className="font-mono font-semibold text-ink">DevDocAI</span>
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            <span className="font-mono font-bold text-base-content">DevDocAI</span>
             <span>— Open deterministic code doc platform</span>
           </div>
           <div className="flex items-center gap-4 font-mono text-[11px]">

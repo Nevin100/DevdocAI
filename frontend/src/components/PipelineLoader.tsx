@@ -77,24 +77,33 @@ export default function PipelineLoader({ repoName }: { repoName: string }) {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 px-4 backdrop-blur-md transition-all duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-base-300/60 px-4 backdrop-blur-xl transition-all duration-300"
     >
-      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-2xl shadow-black/50 sm:p-7 p-5">
-        {/* Subtle Ambient Radial Highlight */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-teal/10 blur-3xl" />
+      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-base-content/10 bg-base-100/90 p-5 shadow-2xl shadow-base-content/10 backdrop-blur-2xl sm:p-7">
+        {/* Subtle Ambient Radial Highlight from the active Theme Primary color */}
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 -bottom-16 h-56 w-56 rounded-full bg-secondary/10 blur-3xl" />
 
         {/* Modal Top Bar */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-4">
-          <div className="flex items-center gap-2.5 min-w-0 pr-2">
-            <span className="flex h-2 w-2 rounded-full bg-teal shadow-[0_0_8px_var(--tw-shadow-color)] shadow-teal" />
-            <span className="truncate font-mono text-xs font-semibold text-ink">
-              {repoName}
+        <div className="relative flex items-center justify-between border-b border-base-content/10 pb-4">
+          <div className="flex items-center gap-2.5 min-w-0 pr-3">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
             </span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-base-content/50">
+                Pipeline Active
+              </span>
+              <span className="truncate font-mono text-xs font-semibold text-base-content">
+                {repoName}
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs text-muted shrink-0">
+          <div className="flex items-center gap-1.5 rounded-full border border-base-content/10 bg-base-200/60 px-2.5 py-1 font-mono text-xs font-medium text-base-content/70 shadow-sm shrink-0">
             <svg
-              className="h-3.5 w-3.5 text-muted-2"
+              className="h-3.5 w-3.5 text-base-content/50"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -113,9 +122,9 @@ export default function PipelineLoader({ repoName }: { repoName: string }) {
         </div>
 
         {/* Stage Timeline */}
-        <div className="relative my-6 space-y-5">
+        <div className="relative my-6 space-y-4">
           {/* Continuous Vertical Trace Line */}
-          <div className="absolute left-[13px] top-3 bottom-3 w-px bg-border/60" />
+          <div className="absolute left-[13px] top-3 bottom-3 w-px bg-base-content/15" />
 
           {STAGES.map((stage, i) => {
             const isDone = i < stageIdx;
@@ -123,15 +132,20 @@ export default function PipelineLoader({ repoName }: { repoName: string }) {
             const isPending = i > stageIdx;
 
             return (
-              <div key={stage.name} className="relative flex items-start gap-4">
+              <div
+                key={stage.name}
+                className={`relative flex items-start gap-4 rounded-xl p-1.5 transition-all duration-300 ${
+                  isActive ? "bg-base-200/40" : ""
+                }`}
+              >
                 {/* Step Node Marker */}
                 <div
                   className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-mono transition-all duration-300 ${
                     isDone
-                      ? "border-teal bg-teal text-bg"
+                      ? "border-primary bg-primary text-primary-content shadow-sm shadow-primary/30"
                       : isActive
-                      ? "border-teal bg-surface text-teal ring-4 ring-teal/15"
-                      : "border-border bg-bg text-muted"
+                      ? "border-primary bg-base-100 text-primary ring-4 ring-primary/20 shadow-sm shadow-primary/25"
+                      : "border-base-content/20 bg-base-200 text-base-content/40"
                   }`}
                 >
                   {isDone ? (
@@ -149,11 +163,11 @@ export default function PipelineLoader({ repoName }: { repoName: string }) {
                     </svg>
                   ) : isActive ? (
                     <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-teal" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                     </span>
                   ) : (
-                    <span className="text-[10px] text-muted-2">{i + 1}</span>
+                    <span className="text-[10px] font-semibold">{i + 1}</span>
                   )}
                 </div>
 
@@ -163,20 +177,28 @@ export default function PipelineLoader({ repoName }: { repoName: string }) {
                     <p
                       className={`text-xs font-semibold tracking-tight transition-colors ${
                         isActive
-                          ? "text-ink"
+                          ? "text-base-content"
                           : isDone
-                          ? "text-ink/80"
-                          : "text-muted-2"
+                          ? "text-base-content/85"
+                          : "text-base-content/40"
                       }`}
                     >
                       {stage.label}
                     </p>
-                    <span className="font-mono text-[10px] text-muted-2">
+                    <span className="font-mono text-[10px] text-base-content/40">
                       {stage.name}
                     </span>
                   </div>
 
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                  <p
+                    className={`mt-0.5 text-[11px] leading-relaxed transition-colors ${
+                      isActive
+                        ? "text-base-content/75"
+                        : isDone
+                        ? "text-base-content/50"
+                        : "text-base-content/30"
+                    }`}
+                  >
                     {isActive
                       ? stage.detail
                       : isDone
@@ -189,22 +211,34 @@ export default function PipelineLoader({ repoName }: { repoName: string }) {
           })}
         </div>
 
-        {/* Live Stream Terminal Box */}
-        <div className="rounded-xl border border-border/80 bg-bg/90 p-3 shadow-inner">
-          <div className="flex items-center justify-between font-mono text-[10px] text-muted-2 border-b border-border/40 pb-1.5 mb-2">
-            <span>PIPELINE_TELEMETRY</span>
-            <span>{progressPercent}%</span>
+        {/* Live Stream Terminal Box & Visual Progress Bar */}
+        <div className="overflow-hidden rounded-2xl border border-base-content/10 bg-base-200/60 p-3.5 shadow-inner backdrop-blur-sm">
+          <div className="mb-2 flex items-center justify-between font-mono text-[10px] font-bold tracking-wider text-base-content/50">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+              PIPELINE_TELEMETRY
+            </span>
+            <span className="font-semibold text-primary">{progressPercent}%</span>
           </div>
-          <div className="flex items-center gap-2 font-mono text-xs text-teal">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal" />
+
+          {/* DaisyUI theme reactive progress bar */}
+          <div className="mb-2.5 h-1.5 w-full overflow-hidden rounded-full bg-base-content/10">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 rounded-lg bg-base-300/50 px-2.5 py-1.5 font-mono text-xs text-primary">
+            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
             <span className="truncate">{activeLog}</span>
           </div>
         </div>
 
         {/* Bottom Safety Warning */}
-        <div className="mt-4 flex items-center gap-2 text-[11px] text-muted">
+        <div className="mt-4 flex items-center gap-2 text-[11px] text-base-content/60">
           <svg
-            className="h-3.5 w-3.5 shrink-0 text-amber"
+            className="h-3.5 w-3.5 shrink-0 text-warning"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
