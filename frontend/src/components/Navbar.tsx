@@ -7,61 +7,60 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/80 bg-bg/80 backdrop-blur-md transition-all">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-50 border-b border-base-300/80 bg-base-100/80 backdrop-blur-md transition-all">
+      <nav className="navbar mx-auto max-w-6xl px-4 py-3 sm:px-6">
         {/* Brand Logo */}
-        <Link
-          href="/"
-          className="group flex items-center gap-2.5 transition hover:opacity-90 active:scale-95"
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-teal" />
-          </span>
-          <span className="font-display text-base font-bold tracking-tight text-ink">
-            DevDocAI
-          </span>
-          <span className="hidden rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-[10px] text-muted-2 sm:inline-block">
-            beta
-          </span>
-        </Link>
+        <div className="flex-1">
+          <Link
+            href="/"
+            className="group flex items-center gap-2.5 transition hover:opacity-90 active:scale-95"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+            </span>
+            <span className="font-display text-base font-bold tracking-tight text-base-content">
+              DevDocAI
+            </span>
+            <span className="badge badge-outline badge-sm hidden font-mono text-[10px] text-base-content/60 sm:inline-flex">
+              beta
+            </span>
+          </Link>
+        </div>
 
         {/* Desktop Navigation Links */}
         <div className="hidden items-center gap-6 md:flex">
           <div className="flex items-center gap-5">
             <Link
               href="/#pipeline"
-              className="text-xs font-medium text-muted transition hover:text-ink"
+              className="text-xs font-medium text-base-content/70 transition hover:text-base-content"
             >
               Pipeline
             </Link>
             <Link
               href="/#how"
-              className="text-xs font-medium text-muted transition hover:text-ink"
+              className="text-xs font-medium text-base-content/70 transition hover:text-base-content"
             >
               How it works
             </Link>
-            <Link
-              href="/blogs"
-              className="inline-flex items-center justify-center rounded-xl bg-teal px-3.5 py-1.5 text-xs font-semibold text-bg shadow-sm transition hover:opacity-90 active:scale-95"
-            >
+            <Link href="/blogs" className="btn btn-primary btn-xs rounded-xl px-3.5 shadow-sm">
               Blogs
+            </Link>
+            <Link href="/theme" className="btn btn-outline btn-xs rounded-xl px-3.5">
+              Theme
             </Link>
           </div>
 
-          <div className="h-4 w-px bg-border" />
+          <div className="divider divider-horizontal m-0 h-4" />
 
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted transition hover:text-ink hover:bg-surface"
+              className="btn btn-ghost btn-xs rounded-lg px-3 text-xs font-medium text-base-content/70 hover:text-base-content"
             >
               Log in
             </Link>
-            <Link
-              href="/signup"
-              className="inline-flex items-center justify-center rounded-xl bg-teal px-3.5 py-1.5 text-xs font-semibold text-bg shadow-sm transition hover:opacity-90 active:scale-95"
-            >
+            <Link href="/signup" className="btn btn-primary btn-xs rounded-xl px-3.5 shadow-sm">
               Get started
             </Link>
           </div>
@@ -69,19 +68,19 @@ export default function Navbar() {
 
         {/* Mobile Animated Hamburger Button */}
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-ink transition hover:border-muted-2 md:hidden"
+          className="btn btn-square btn-sm border-base-300 bg-base-200 text-base-content hover:border-base-content/30 md:hidden"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
           aria-label="Toggle navigation menu"
         >
           <div className="relative h-3.5 w-4">
             <span
-              className={`absolute left-0 block h-0.5 w-4 bg-ink transition-all duration-200 ${
+              className={`absolute left-0 block h-0.5 w-4 bg-base-content transition-all duration-200 ${
                 open ? "top-1.5 rotate-45" : "top-0.5"
               }`}
             />
             <span
-              className={`absolute left-0 block h-0.5 w-4 bg-ink transition-all duration-200 ${
+              className={`absolute left-0 block h-0.5 w-4 bg-base-content transition-all duration-200 ${
                 open ? "top-1.5 -rotate-45" : "top-2.5"
               }`}
             />
@@ -91,26 +90,40 @@ export default function Navbar() {
 
       {/* Mobile Drawer Dropdown */}
       {open && (
-        <div className="border-t border-border/80 bg-bg/95 px-5 py-4 backdrop-blur-xl md:hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="animate-in fade-in slide-in-from-top-2 border-t border-base-300/80 bg-base-100/95 px-5 py-4 backdrop-blur-xl duration-150 md:hidden">
           <div className="flex flex-col gap-3">
             <Link
               href="/#pipeline"
               onClick={() => setOpen(false)}
-              className="rounded-lg px-2 py-1.5 text-xs font-medium text-muted transition hover:bg-surface hover:text-ink"
+              className="rounded-lg px-2 py-1.5 text-xs font-medium text-base-content/70 transition hover:bg-base-200 hover:text-base-content"
             >
               Pipeline
             </Link>
             <Link
               href="/#how"
               onClick={() => setOpen(false)}
-              className="rounded-lg px-2 py-1.5 text-xs font-medium text-muted transition hover:bg-surface hover:text-ink"
+              className="rounded-lg px-2 py-1.5 text-xs font-medium text-base-content/70 transition hover:bg-base-200 hover:text-base-content"
             >
               How it works
             </Link>
             <Link
+              href="/blogs"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-2 py-1.5 text-xs font-medium text-base-content/70 transition hover:bg-base-200 hover:text-base-content"
+            >
+              Blogs
+            </Link>
+            <Link
+              href="/theme"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-2 py-1.5 text-xs font-medium text-base-content/70 transition hover:bg-base-200 hover:text-base-content"
+            >
+              Theme
+            </Link>
+            <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="rounded-lg px-2 py-1.5 text-xs font-medium text-muted transition hover:bg-surface hover:text-ink"
+              className="rounded-lg px-2 py-1.5 text-xs font-medium text-base-content/70 transition hover:bg-base-200 hover:text-base-content"
             >
               Log in
             </Link>
@@ -119,17 +132,7 @@ export default function Navbar() {
               <Link
                 href="/signup"
                 onClick={() => setOpen(false)}
-                className="flex w-full items-center justify-center rounded-xl bg-teal py-2 text-xs font-semibold text-bg transition hover:opacity-90 active:scale-95"
-              >
-                Get started
-              </Link>
-            </div>
-
-            <div className="pt-2">
-              <Link
-                href="/signup"
-                onClick={() => setOpen(false)}
-                className="flex w-full items-center justify-center rounded-xl bg-teal py-2 text-xs font-semibold text-bg transition hover:opacity-90 active:scale-95"
+                className="btn btn-primary flex w-full items-center justify-center rounded-xl py-2 text-xs font-semibold"
               >
                 Get started
               </Link>
