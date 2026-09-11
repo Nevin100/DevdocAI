@@ -93,11 +93,6 @@ export default function BuildInPublicPage() {
         
         {/* Hero Section */}
         <section className="border-b border-base-content/10 pb-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-mono font-semibold text-primary">
-            <span className="h-1.5 w-1.5 animate-ping rounded-full bg-primary" />
-            LIVE ENGINEERING LOGS
-          </div>
-
           <h1 className="mt-4 font-display text-3xl font-black tracking-tight text-base-content sm:text-5xl lg:text-6xl lg:leading-[1.15]">
             Architected in the open. <br className="hidden sm:inline" />
             <span className="text-primary italic">Documented word by word.</span>
@@ -144,7 +139,7 @@ export default function BuildInPublicPage() {
             </a>
 
             <a
-              href="https://hashnode.com/@Nevin100"
+              href="https://hashnode.com/@nevin100"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 rounded-2xl border border-base-content/10 bg-base-200/40 px-3.5 py-2 text-xs font-medium text-base-content/80 transition-all hover:border-primary/40 hover:bg-base-200 hover:text-base-content active:scale-95"
