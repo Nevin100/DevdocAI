@@ -33,4 +33,6 @@ dependencies = [
     "psycopg-pool==3.2.3",
     "langchain-huggingface==0.1.2",
     "sentence-transformers==3.0.1",
+    "tavily-python==0.8.1",
+    "tiktoken==0.14.0",
 ]

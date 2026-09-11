@@ -74,7 +74,7 @@ async def store_document(doc_id: str, content: str, metadata: dict) -> str:
             "file_path": metadata.get("file_path", ""),
             "module_name": metadata.get("module_name", ""),
             "repo_id": metadata.get("repo_id", ""),
-            "content": content[:1000],   # store first 1000 chars for retrieval context
+            "content": content[:4000],   # store first 1000 chars for retrieval context
         }
     )
     await client.upsert(

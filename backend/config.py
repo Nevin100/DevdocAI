@@ -26,19 +26,15 @@ class Settings(BaseSettings):
 
     # LLM 
     GROQ_API_KEY: str
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
-
-    # Embeddings:
-    COHERE_API_KEY: str
-    COHERE_EMBED_MODEL: str = "embed-english-v3.0"
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
 
     # Vector Database:
     QDRANT_URL: str = "http://localhost:6333"  # local Docker (dev) / Qdrant Cloud URL (prod)
     QDRANT_API_KEY: str = ""                   # empty for local, set for Qdrant Cloud
     QDRANT_COLLECTION_NAME: str = "devdocai_docs"
 
-    # Brave Search :
-    BRAVE_SEARCH_API_KEY: str
+    # Tavily Search api
+    TAVILY_API_KEY: str = ""
 
     # Redis:
     REDIS_URL: str

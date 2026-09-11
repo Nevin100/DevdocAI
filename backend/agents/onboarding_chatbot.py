@@ -8,42 +8,88 @@ from config import get_settings
 
 settings = get_settings()
 
-# Model 
 llm = ChatGroq(
     api_key=settings.GROQ_API_KEY,
     model=settings.GROQ_MODEL,
-    temperature=0.5,
+    temperature=0.3,
 )
-# Prompt template for the onboarding chatbot. It takes retrieved context from the docs and the developer's question, and instructs the LLM to answer based only on that context, providing concise and developer-friendly answers with file paths when relevant.
+
 CHATBOT_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """You are a helpful onboarding assistant for a software engineering team.
-You answer questions about the codebase using the provided documentation context.
+    ("system", """You are DevDocAI's onboarding assistant — a senior engineer helping a
+new teammate understand this specific codebase.
 
-Rules:
-- Only answer based on the provided context
-- If the answer isn't in the context, say "I don't have documentation for that yet"
-- Be concise and developer-friendly
-- Include file paths when referencing specific code
-- If asked about a function or class, explain what it does and how to use it"""),
+## What you're working with
 
-    ("human", """Context from codebase documentation:
+The context below contains the TOP MATCHING documentation excerpts retrieved via
+semantic search for this question — not the entire repository. Retrieval finds
+excerpts that are *relevant* to the question, not necessarily *complete*.
+
+## Ground rules — follow these strictly
+
+1. **Only state facts that are explicitly present in the context.** Never invent
+   file names, function names, module counts, or behavior that isn't shown.
+
+2. **Never guess totals or counts.** If asked "how many files/modules/functions
+   are there," do NOT count what's in front of you and present it as the total.
+   Instead say something like: "The context I retrieved shows N relevant files
+   ([list them]), but this may not be the complete set — I can only confirm
+   what's in front of me, not the full repository count."
+
+3. **Distinguish "not in context" from "doesn't exist."** If something isn't in
+   the excerpts you have, say "I don't see that in the docs I have access to"
+   — never say a feature or file "doesn't exist" just because it's absent from
+   your current context.
+
+4. **Cite file paths for every specific claim.** When you describe what a file
+   or function does, name it explicitly (e.g., "In `agents/doc_generator.py`,
+   the `doc_generator_node` function does X"). This lets the developer verify
+   and find it themselves.
+
+5. **Synthesize across multiple excerpts when relevant.** If three files all
+   relate to the question, weave them into one coherent answer instead of
+   listing them as disconnected facts — but keep every claim traceable to a
+   specific file.
+
+6. **Be concise but not terse.** Prefer a tight paragraph or short list over
+   a wall of text. Skip filler like "Great question!" — get straight to the
+   substance a working engineer needs.
+
+7. **If the context is thin or off-topic for the question, say so plainly**
+   rather than stretching irrelevant excerpts into a forced answer.
+
+8. **Never fabricate code snippets.** Only quote code that literally appears
+   in the context. If you want to illustrate usage and no exact example
+   exists, describe the pattern in prose instead of inventing a snippet.
+
+## Format
+
+- Use markdown: backticks for file/function names, bullet lists for multiple
+  items, short headers only if the answer has genuinely distinct sections.
+- Lead with the direct answer, then supporting detail — don't bury the point.
+"""),
+
+    ("human", """Retrieved documentation context (top matches for this query — not the full repo):
 {context}
+
+---
 
 Developer's question: {question}
 
-Answer:""")
+Answer using only the context above, following the ground rules exactly."""),
 ])
 
-# This node is responsible for answering developer questions about the codebase using a RAG approach. It takes a chat query from the state, searches the Qdrant vector store for relevant documents, builds a context string from the search results, and then calls the Groq LLM with the context and question to generate an answer. The response is returned along with updated chat messages for the frontend to display.
+
 async def onboarding_chatbot_node(state: DevDocState) -> dict:
     """
     LangGraph node — answers developer questions using RAG over stored docs.
 
     Steps:
     1. Take chat_query from state
-    2. Search Qdrant for relevant docs
+    2. Search Qdrant for relevant docs (top_k raised for broader coverage)
     3. Build context from search results
-    4. Call Groq LLM with context + question
+    4. Call Groq LLM with context + question, using a prompt that forces
+       honesty about retrieval limits (no fabricated totals, no invented
+       file names)
     5. Return chat_response
 
     This runs as a parallel graph — independent from the doc pipeline.
@@ -55,11 +101,13 @@ async def onboarding_chatbot_node(state: DevDocState) -> dict:
 
     print(f"💬 Chatbot query: {query}")
 
-    # Search relevant docs from Qdrant
+    # top_k raised from 4 → 15 so broader questions ("how many modules",
+    # "what does this repo cover") see more of the indexed docs, not just
+    # the single closest match.
     results = await search_documents(
         query=query,
         repo_id=state.repo_id,
-        top_k=4
+        top_k=15
     )
 
     if not results:
@@ -68,7 +116,6 @@ async def onboarding_chatbot_node(state: DevDocState) -> dict:
             "current_step": "onboarding_chatbot",
         }
 
-    # Build context string from search results
     context_parts = []
     for r in results:
         context_parts.append(
@@ -76,16 +123,14 @@ async def onboarding_chatbot_node(state: DevDocState) -> dict:
         )
     context = "\n\n---\n\n".join(context_parts)
 
-    # Call LLM
     chain = CHATBOT_PROMPT | llm
     response = await chain.ainvoke({
         "context": context,
         "question": query,
     })
 
-    print(f"Chatbot answered: {query[:50]}...")
+    print(f"✅ Chatbot answered: {query[:50]}...")
 
-    # Add to chat history
     new_messages = [
         HumanMessage(content=query),
         AIMessage(content=response.content),
