@@ -46,7 +46,7 @@ codebase_parser      ← AST-level parsing of GitHub repo
   ↓
 doc_generator        ← LLM generates structured docs per module/function
   ↓
-brave_researcher     ← enriches with external context (libraries, best practices)
+tavily_researcher    ← enriches with external context (libraries, best practices)
   ↓
 HITL checkpoint      ← dev reviews generated docs before publish
   ↓
