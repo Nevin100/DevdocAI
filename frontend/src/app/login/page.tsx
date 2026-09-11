@@ -67,57 +67,67 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-bg px-4 py-12 text-ink selection:bg-teal/20 selection:text-teal sm:px-6">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-base-100 px-4 py-12 text-base-content selection:bg-primary/25 selection:text-primary sm:px-6">
       {/* Background Ambience & Engineering Matrix */}
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_60%,transparent_100%)] opacity-25" />
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-teal/10 blur-[100px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] text-base-content/[0.04] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_60%,transparent_100%)]" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-primary/15 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-40 right-1/4 h-80 w-80 rounded-full bg-secondary/10 blur-[120px]" />
 
       <div className="relative w-full max-w-sm sm:max-w-md">
         {/* Top Brand Mark */}
         <div className="mb-8 flex flex-col items-center text-center">
           <Link
             href="/"
-            className="group inline-flex items-center gap-2.5 rounded-full border border-border bg-surface/70 px-3.5 py-1.5 backdrop-blur-md transition hover:border-teal/50 hover:bg-surface active:scale-95"
+            className="group inline-flex items-center gap-2.5 rounded-full border border-base-content/10 bg-base-200/70 px-4 py-1.5 backdrop-blur-md transition hover:border-primary/40 hover:bg-base-200 active:scale-95 shadow-sm"
           >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-teal" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
             </span>
-            <span className="font-display text-sm font-bold tracking-tight">DevDocAI</span>
-            <span className="font-mono text-[10px] uppercase text-muted">v0.9</span>
+            <span className="font-display text-sm font-extrabold tracking-tight text-base-content transition-colors group-hover:text-primary">
+              DevDocAI
+            </span>
+            <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
+              v0.9
+            </span>
           </Link>
-          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+
+          <h1 className="mt-5 font-display text-2xl font-black tracking-tight text-base-content sm:text-3xl">
             Welcome back
           </h1>
-          <p className="mt-1 text-xs text-muted sm:text-sm">
+          <p className="mt-1.5 text-xs text-base-content/65 sm:text-sm max-w-xs">
             Authenticate to manage your codebase documentation runs.
           </p>
         </div>
 
         {/* Card Shell */}
-        <div className="rounded-2xl border border-border/90 bg-surface/80 p-6 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-8">
+        <div className="rounded-3xl border border-base-content/10 bg-base-100/80 p-6 shadow-2xl shadow-base-content/5 backdrop-blur-2xl sm:p-8">
           {/* OAuth Alternative */}
           <button
             type="button"
             onClick={handleGithub}
             disabled={githubLoading || loading}
-            className="group flex w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-semibold text-ink transition hover:border-muted-2 hover:bg-surface-2 active:scale-[0.99] disabled:opacity-60"
+            className="group flex w-full items-center justify-center gap-2.5 rounded-2xl border border-base-content/10 bg-base-200/60 px-4 py-2.5 text-xs font-bold text-base-content transition-all hover:border-base-content/25 hover:bg-base-200 active:scale-[0.99] disabled:opacity-60 shadow-sm cursor-pointer"
           >
-            {githubLoading ? <Spinner className="h-4 w-4 text-teal" /> : <GitHubIcon className="h-4 w-4 transition group-hover:scale-110" />}
+            {githubLoading ? (
+              <Spinner className="h-4 w-4 text-primary" />
+            ) : (
+              <GitHubIcon className="h-4 w-4 transition group-hover:scale-110" />
+            )}
             <span>{githubLoading ? "Redirecting to GitHub..." : "Continue with GitHub"}</span>
           </button>
 
           {/* Clean Visual Divider */}
-          <div className="my-5 flex items-center gap-3 text-[11px] font-mono uppercase tracking-wider text-muted-2">
-            <div className="h-px flex-1 bg-border/80" />
+          <div className="my-5 flex items-center gap-3 text-[11px] font-mono uppercase tracking-wider text-base-content/40">
+            <div className="h-px flex-1 bg-base-content/10" />
             <span>or email</span>
-            <div className="h-px flex-1 bg-border/80" />
+            <div className="h-px flex-1 bg-base-content/10" />
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-xs font-medium text-muted">
+              <label htmlFor="email" className="mb-1.5 block text-xs font-semibold text-base-content/70">
                 Work Email
               </label>
               <input
@@ -128,20 +138,20 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="developer@company.com"
-                className="w-full rounded-xl border border-border bg-bg/90 px-3.5 py-2.5 text-xs text-ink outline-none transition placeholder:text-muted/50 focus:border-teal focus:ring-1 focus:ring-teal/30"
+                className="input input-bordered w-full rounded-2xl bg-base-200/50 text-xs text-base-content placeholder:text-base-content/30 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label htmlFor="password" className="block text-xs font-medium text-muted">
+                <label htmlFor="password" className="block text-xs font-semibold text-base-content/70">
                   Password
                 </label>
                 <button
                   type="button"
                   tabIndex={-1}
                   onClick={() => setShowPassword((p) => !p)}
-                  className="font-mono text-[11px] text-muted hover:text-teal transition"
+                  className="font-mono text-[11px] font-medium text-base-content/50 hover:text-primary transition-colors"
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
@@ -155,16 +165,16 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full rounded-xl border border-border bg-bg/90 px-3.5 py-2.5 text-xs text-ink outline-none transition placeholder:text-muted/50 focus:border-teal focus:ring-1 focus:ring-teal/30"
+                  className="input input-bordered w-full rounded-2xl bg-base-200/50 text-xs text-base-content placeholder:text-base-content/30 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
 
-            {/* Error Message with Warning Tone */}
+            {/* Error Message */}
             {error && (
               <div
                 role="alert"
-                className="flex items-start gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-400 animate-in fade-in zoom-in-95 duration-200"
+                className="flex items-start gap-2.5 rounded-2xl border border-error/20 bg-error/10 p-3 text-xs text-error animate-in fade-in zoom-in-95 duration-200"
               >
                 <svg className="h-4 w-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -176,11 +186,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || githubLoading}
-              className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-teal px-4 text-xs font-semibold text-bg shadow-sm transition hover:opacity-90 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
+              className="btn btn-primary mt-2 h-11 w-full rounded-2xl text-xs font-bold text-primary-content shadow-lg shadow-primary/20 transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
             >
               {loading ? (
                 <>
-                  <Spinner className="h-3.5 w-3.5 text-bg" />
+                  <Spinner className="h-3.5 w-3.5 text-primary-content" />
                   <span>Verifying credentials...</span>
                 </>
               ) : (
@@ -191,9 +201,9 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Navigation */}
-        <p className="mt-6 text-center text-xs text-muted">
+        <p className="mt-6 text-center text-xs text-base-content/60">
           Need an account?{" "}
-          <Link href="/signup" className="font-semibold text-teal hover:underline underline-offset-4">
+          <Link href="/signup" className="font-bold text-primary hover:underline underline-offset-4">
             Create an account
           </Link>
         </p>
