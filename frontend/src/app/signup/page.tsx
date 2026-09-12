@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, setToken } from "@/src/lib/api";
+import { signupSchema } from "@/src/lib/validation";
 
 function GitHubIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -40,7 +41,6 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [githubLoading, setGithubLoading] = useState(false);
 
-  // Real-time password strength indicators
   const passwordCriteria = useMemo(() => {
     return {
       hasMinLen: password.length >= 8,
@@ -58,8 +58,13 @@ export default function SignupPage() {
     if (password.length < 8) {
       setError("Password needs at least 8 characters");
       return;
-    }
-
+      }
+    const result = signupSchema.safeParse({ email, password});
+    if(!result.success){
+      setError(result.error.issues[0].message); 
+      return;
+    } 
+     
     setLoading(true);
     try {
       const { access_token } = await auth.register(email, password);

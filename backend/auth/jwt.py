@@ -1,7 +1,7 @@
 import uuid
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
-from fastapi import HTTPException, status, Depends
+from fastapi import Request, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from config import get_settings
 
@@ -38,5 +38,14 @@ def verify_access_token(token : str) -> uuid.UUID:
         )
 
 # Dependency to get current user from token :
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> uuid.UUID:
-    return verify_access_token(credentials.credentials)
+def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False))) -> uuid.UUID:
+    token = None
+    if credentials:
+        token = credentials.credentials
+    elif "access_token" in request.cookies:
+        token = request.cookies["access_token"]
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    return verify_access_token(token)

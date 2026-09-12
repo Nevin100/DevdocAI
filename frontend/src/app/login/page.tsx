@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, setToken } from "@/src/lib/api";
+import { loginSchema } from "@/src/lib/validation";
 
 function GitHubIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -43,6 +44,11 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    const result = loginSchema.safeParse({ email, password });
+      if (!result.success) {
+      setError(result.error.issues[0].message);
+      return;
+    }
     setLoading(true);
     try {
       const { access_token } = await auth.login(email, password);
