@@ -1,29 +1,11 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("devdocai_token");
-}
-
-export function setToken(token: string) {
-  localStorage.setItem("devdocai_token", token);
-}
-
-export function clearToken() {
-  localStorage.removeItem("devdocai_token");
-}
-
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = getToken();
-
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: "include",  
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
@@ -36,7 +18,7 @@ async function request<T>(
   return res.json();
 }
 
-// Types 
+// ── Types ────────────────────────────────────────────────────────────────────
 export type Repo = {
   id: string;
   full_name: string;
@@ -62,72 +44,58 @@ export type PipelineState = {
   completed: boolean;
 };
 
-// Auth 
+// ── Auth ─────────────────────────────────────────────────────────────────────
 export const auth = {
   register: (email: string, password: string) =>
-    request<{ access_token: string }>("/auth/register", {
+    request<{ status: string }>("/auth/register", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
   login: (email: string, password: string) =>
-    request<{ access_token: string }>("/auth/login", {
+    request<{ status: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
+  logout: () =>
+    request<{ status: string }>("/auth/logout", { method: "POST" }),
+
   me: () =>
-    request<{ id: string; email: string; github_username: string | null }>(
-      "/auth/me"
-    ),
+    request<{ id: string; email: string; github_username: string | null }>("/auth/me"),
 
   githubUrl: () => request<{ url: string }>("/auth/github"),
 
   githubCallback: (code: string) =>
-    request<{ access_token: string }>("/auth/github/callback", {
+    request<{ status: string }>("/auth/github/callback", {
       method: "POST",
       body: JSON.stringify({ code }),
     }),
 };
 
-// Repos 
+// ── Repos ────────────────────────────────────────────────────────────────────
 export const repos = {
   list: () => request<Repo[]>("/repos"),
-
   githubList: () => request<{ repos: GithubRepo[]; error?: string }>("/github/repos"),
-
   connect: (body: { github_repo_id: string; full_name: string; default_branch: string }) =>
-    request<Repo>("/repos/connect", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
+    request<Repo>("/repos/connect", { method: "POST", body: JSON.stringify(body) }),
   run: (repoId: string) =>
-    request<{ status: string; thread_id: string }>(`/repos/${repoId}/run`, {
-      method: "POST",
-    }),
-
+    request<{ status: string; thread_id: string }>(`/repos/${repoId}/run`, { method: "POST" }),
   latestThread: (repoId: string) =>
     request<{ thread_id: string }>(`/repos/${repoId}/latest-thread`),
 };
 
-// Pipeline (HITL review) 
+// ── Pipeline (HITL review) ────────────────────────────────────────────────────
 export const pipeline = {
-  getState: (threadId: string) =>
-    request<PipelineState>(`/pipeline/${threadId}/state`),
-
+  getState: (threadId: string) => request<PipelineState>(`/pipeline/${threadId}/state`),
   review: (threadId: string, reviewStatus: "approved" | "rejected", devNotes: string) =>
     request<{ status: string; thread_id: string }>("/pipeline/review", {
       method: "POST",
-      body: JSON.stringify({
-        thread_id: threadId,
-        review_status: reviewStatus,
-        dev_notes: devNotes,
-      }),
+      body: JSON.stringify({ thread_id: threadId, review_status: reviewStatus, dev_notes: devNotes }),
     }),
 };
 
-// Chat (onboarding chatbot) 
+// ── Chat ─────────────────────────────────────────────────────────────────────
 export const chat = {
   ask: (repoId: string, query: string) =>
     request<{ chat_response: string }>("/chat/ask", {

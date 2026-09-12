@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { auth, setToken } from "@/src/lib/api";
+import { auth } from "@/src/lib/api";
 
 export default function GithubCallbackPage() {
   const router = useRouter();
@@ -22,8 +22,7 @@ export default function GithubCallbackPage() {
 
     auth
       .githubCallback(code)
-      .then(({ access_token }) => {
-        setToken(access_token);
+      .then(() => {
         router.push("/dashboard");
       })
       .catch((err: any) => {
@@ -52,11 +51,23 @@ export default function GithubCallbackPage() {
         {error ? (
           <div className="mt-8 rounded-3xl border border-error/20 bg-base-100/90 p-7 shadow-2xl shadow-base-content/5 backdrop-blur-xl">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-error/20 bg-error/10 text-error">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
             </div>
-            <p className="text-xs font-semibold text-error leading-relaxed">{error}</p>
+            <p className="text-xs font-semibold text-error leading-relaxed">
+              {error}
+            </p>
             <button
               onClick={() => router.push("/login")}
               className="btn btn-outline btn-sm mt-5 w-full rounded-xl border-base-content/20 text-xs font-bold text-base-content hover:bg-base-200 normal-case active:scale-95"

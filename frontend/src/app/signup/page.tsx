@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, setToken } from "@/src/lib/api";
+import { auth } from "@/src/lib/api";
 import { signupSchema } from "@/src/lib/validation";
 
 function GitHubIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -67,8 +67,7 @@ export default function SignupPage() {
      
     setLoading(true);
     try {
-      const { access_token } = await auth.register(email, password);
-      setToken(access_token);
+      await auth.register(email, password);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");

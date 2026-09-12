@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, setToken } from "@/src/lib/api";
+import { auth  } from "@/src/lib/api";
 import { loginSchema } from "@/src/lib/validation";
 
 function GitHubIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -51,8 +51,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      const { access_token } = await auth.login(email, password);
-      setToken(access_token);
+      await auth.login(email, password);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please verify credentials.");

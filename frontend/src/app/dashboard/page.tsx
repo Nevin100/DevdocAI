@@ -182,14 +182,14 @@ export default function DashboardPage() {
   const filteredRepos = useMemo(() => {
     if (!searchQuery.trim()) return myRepos;
     return myRepos.filter((r) =>
-      r.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+      r.full_name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [myRepos, searchQuery]);
 
   const filteredGhRepos = useMemo(() => {
     if (!ghSearchQuery.trim()) return githubRepos;
     return githubRepos.filter((r) =>
-      r.full_name.toLowerCase().includes(ghSearchQuery.toLowerCase())
+      r.full_name.toLowerCase().includes(ghSearchQuery.toLowerCase()),
     );
   }, [githubRepos, ghSearchQuery]);
 
@@ -265,6 +265,15 @@ export default function DashboardPage() {
                 <span className="max-w-[140px] truncate font-mono text-xs font-medium text-base-content/70 sm:max-w-none">
                   {user.github_username ?? user.email}
                 </span>
+                <button
+                  onClick={async () => {
+                    await auth.logout();
+                    router.push("/login");
+                  }}
+                  className="btn btn-ghost btn-sm rounded-xl text-xs text-base-content/60 hover:text-error"
+                >
+                  Logout
+                </button>
               </div>
             ) : (
               <div className="h-7 w-28 animate-pulse rounded-full bg-base-300/60" />
@@ -282,8 +291,9 @@ export default function DashboardPage() {
               Connected Repositories
             </h1>
             <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-base-content/70 sm:text-sm">
-              Continuous documentation engine synchronized with your Git branches.
-              DevDocAI tracks pull requests and recalculates architecture graphs.
+              Continuous documentation engine synchronized with your Git
+              branches. DevDocAI tracks pull requests and recalculates
+              architecture graphs.
             </p>
           </div>
 
@@ -296,7 +306,9 @@ export default function DashboardPage() {
               className="btn btn-square btn-sm h-9 w-9 rounded-xl border-base-content/10 bg-base-200/70 text-base-content/70 hover:bg-base-200 hover:text-base-content disabled:opacity-50"
               title="Refresh repository states"
             >
-              <Spinner className={refreshing ? "h-3.5 w-3.5 text-primary" : "hidden"} />
+              <Spinner
+                className={refreshing ? "h-3.5 w-3.5 text-primary" : "hidden"}
+              />
               {!refreshing && (
                 <svg
                   className="h-3.5 w-3.5"
@@ -428,7 +440,9 @@ export default function DashboardPage() {
                       <div
                         className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 ${style.badgeBg}`}
                       >
-                        <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${style.dot}`}
+                        />
                         <span className={`text-[10px] font-bold ${style.text}`}>
                           {style.label}
                         </span>
@@ -438,10 +452,14 @@ export default function DashboardPage() {
                     <div className="mt-4 border-t border-base-content/10 pt-3">
                       <p className="text-[11px] text-base-content/60">
                         {repo.last_parsed_at
-                          ? `Updated ${new Date(repo.last_parsed_at).toLocaleDateString(
-                              undefined,
-                              { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
-                            )}`
+                          ? `Updated ${new Date(
+                              repo.last_parsed_at,
+                            ).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}`
                           : "Awaiting initial sync"}
                       </p>
                     </div>
@@ -454,7 +472,9 @@ export default function DashboardPage() {
                         onClick={async () => {
                           setReviewLoadingId(repo.id);
                           try {
-                            const { thread_id } = await repos.latestThread(repo.id);
+                            const { thread_id } = await repos.latestThread(
+                              repo.id,
+                            );
                             router.push(`/review?thread=${thread_id}`);
                           } catch {
                             alert("Could not load latest run session.");
@@ -464,7 +484,9 @@ export default function DashboardPage() {
                         disabled={isReviewLoading}
                         className="btn btn-outline btn-sm flex-1 rounded-xl border-base-content/20 text-xs font-semibold normal-case text-base-content hover:border-primary hover:bg-primary/10 hover:text-primary active:scale-95 disabled:opacity-60"
                       >
-                        {isReviewLoading && <Spinner className="h-3 w-3 text-primary" />}
+                        {isReviewLoading && (
+                          <Spinner className="h-3 w-3 text-primary" />
+                        )}
                         <span>Review Docs</span>
                       </button>
                     ) : (
@@ -475,7 +497,9 @@ export default function DashboardPage() {
                             const { thread_id } = await repos.run(repo.id);
                             router.push(`/review?thread=${thread_id}`);
                           } catch (err) {
-                            alert(err instanceof Error ? err.message : "Run failed");
+                            alert(
+                              err instanceof Error ? err.message : "Run failed",
+                            );
                             setRunningRepoName(null);
                           }
                         }}
@@ -504,8 +528,12 @@ export default function DashboardPage() {
               <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-base-content/10 bg-base-100 text-base font-bold text-base-content/60 transition group-hover:border-primary/40 group-hover:text-primary shadow-sm">
                 +
               </span>
-              <span className="font-bold text-base-content">Connect another repo</span>
-              <span className="font-mono text-[10px] text-base-content/40">Public or private GitHub</span>
+              <span className="font-bold text-base-content">
+                Connect another repo
+              </span>
+              <span className="font-mono text-[10px] text-base-content/40">
+                Public or private GitHub
+              </span>
             </button>
           </div>
         )}
@@ -527,11 +555,15 @@ export default function DashboardPage() {
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-base-content/10 px-6 py-4">
               <div>
-                <h2 id="modal-title" className="font-display text-base font-bold text-base-content">
+                <h2
+                  id="modal-title"
+                  className="font-display text-base font-bold text-base-content"
+                >
                   Connect GitHub Repository
                 </h2>
                 <p className="text-[11px] text-base-content/60">
-                  Choose an authorized repository to generate automated documentation.
+                  Choose an authorized repository to generate automated
+                  documentation.
                 </p>
               </div>
 
