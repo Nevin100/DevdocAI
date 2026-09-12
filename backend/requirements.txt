@@ -51,3 +51,6 @@ sentence-transformers==3.0.1
 #tavily-python
 tavily-python==0.8.1
 tiktoken==0.14.0
+
+#rate Limiter:
+slowapi==0.1.9

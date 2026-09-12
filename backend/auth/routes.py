@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from auth.jwt import get_current_user
@@ -9,6 +9,10 @@ from schemas.auth_schema import (
     GithubCallbackRequest, GithubOAuthUrlResponse
 )
 from services.auth_service import AuthService
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
@@ -20,7 +24,8 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 # 2. Login
 @router.post("/login", response_model=TokenResponse)
-async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(req: Request, body: LoginRequest, db: AsyncSession = Depends(get_db)):
     return await AuthService.login(body, db)
 
 # 3. Get Current User
