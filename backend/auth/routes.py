@@ -30,7 +30,8 @@ def set_auth_cookie(response: Response, token: str):
 
 
 @router.post("/register", status_code=201)
-async def register(body: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)):
+@limiter.limit("3/hour")
+async def register(request:Request, body: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)):
     result: TokenResponse = await AuthService.register(body, db)
     set_auth_cookie(response, result.access_token)
     return {"status": "ok"}

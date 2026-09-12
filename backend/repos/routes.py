@@ -1,7 +1,6 @@
 import uuid
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from db.database import get_db
 from db.models import User
 from auth.jwt import get_current_user
@@ -9,7 +8,10 @@ from schemas.repo_schemas import ConnectRepoRequest, RepoResponse
 from services.repo_service import RepoService
 from mcp.github_server import list_user_repos
 from utils.encryption import decrypt
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
 
 @router.get("/repos", response_model=list[RepoResponse])
@@ -49,7 +51,9 @@ async def connect_repo(
     return await RepoService.connect_repo(user_id, body, db)
 
 @router.post("/repos/{repo_id}/run")
+@limiter.limit("3/minute")
 async def run_pipeline_manually(
+    request: Request,
     repo_id: uuid.UUID,
     user_id: uuid.UUID = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
