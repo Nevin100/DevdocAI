@@ -1,0 +1,42 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_BACKEND: devdocai-backend
+  ECR_FRONTEND: devdocai-frontend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::156397422443:role/DevDocAI-ECR-Push
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push backend
+        run: |
+          docker build -t ${{ steps.ecr.outputs.registry }}/$ECR_BACKEND:${{ github.sha }} ./backend
+          docker push ${{ steps.ecr.outputs.registry }}/$ECR_BACKEND:${{ github.sha }}
+
+      - name: Build & push frontend
+        run: |
+          docker build -t ${{ steps.ecr.outputs.registry }}/$ECR_FRONTEND:${{ github.sha }} ./frontend
+          docker push ${{ steps.ecr.outputs.registry }}/$ECR_FRONTEND:${{ github.sha }}
+
+      # - name: Deploy backend to ECS
+      #   run: aws ecs update-service --cluster devdocai-cluster --service devdocai-backend-svc --force-new-deployment
+
+      # - name: Deploy frontend to ECS
+      #   run: aws ecs update-service --cluster devdocai-cluster --service devdocai-frontend-svc --force-new-deployment
