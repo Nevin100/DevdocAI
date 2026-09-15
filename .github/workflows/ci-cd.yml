@@ -12,7 +12,7 @@ env:
   AWS_REGION: ap-south-1
   ECR_BACKEND: devdocai-backend
   ECR_FRONTEND: devdocai-frontend
-  NEXT_PUBLIC_API_URL: http://devdocai-alb-753341861.ap-south-1.elb.amazonaws.com
+  NEXT_PUBLIC_API_URL: https://devdocai.nevinbali.me
 
 jobs:
   build-and-push:
