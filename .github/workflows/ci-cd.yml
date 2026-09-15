@@ -12,6 +12,7 @@ env:
   AWS_REGION: ap-south-1
   ECR_BACKEND: devdocai-backend
   ECR_FRONTEND: devdocai-frontend
+  NEXT_PUBLIC_API_URL: http://devdocai-alb-753341861.ap-south-1.elb.amazonaws.com
 
 jobs:
   build-and-push:
@@ -31,16 +32,18 @@ jobs:
 
       - name: Build & push backend
         run: |
-          docker build -t ${{ steps.ecr.outputs.registry }}/$ECR_BACKEND:${{ github.sha }} ./backend
+          docker build -t ${{ steps.ecr.outputs.registry }}/$ECR_BACKEND:${{ github.sha }} -t ${{ steps.ecr.outputs.registry }}/$ECR_BACKEND:latest ./backend
           docker push ${{ steps.ecr.outputs.registry }}/$ECR_BACKEND:${{ github.sha }}
+          docker push ${{ steps.ecr.outputs.registry }}/$ECR_BACKEND:latest
 
       - name: Build & push frontend
         run: |
-          docker build -t ${{ steps.ecr.outputs.registry }}/$ECR_FRONTEND:${{ github.sha }} ./frontend
+          docker build --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL -t ${{ steps.ecr.outputs.registry }}/$ECR_FRONTEND:${{ github.sha }} -t ${{ steps.ecr.outputs.registry }}/$ECR_FRONTEND:latest ./frontend
           docker push ${{ steps.ecr.outputs.registry }}/$ECR_FRONTEND:${{ github.sha }}
+          docker push ${{ steps.ecr.outputs.registry }}/$ECR_FRONTEND:latest
 
-      # - name: Deploy backend to ECS
-      #   run: aws ecs update-service --cluster devdocai-cluster --service devdocai-backend-svc --force-new-deployment
+      - name: Deploy backend to ECS
+        run: aws ecs update-service --cluster devdocai-cluster --service devdocai-backend-service --force-new-deployment --region $AWS_REGION
 
-      # - name: Deploy frontend to ECS
-      #   run: aws ecs update-service --cluster devdocai-cluster --service devdocai-frontend-svc --force-new-deployment
+      - name: Deploy frontend to ECS
+        run: aws ecs update-service --cluster devdocai-cluster --service devdocai-frontend-service --force-new-deployment --region $AWS_REGION
