@@ -2,12 +2,14 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
+import asyncio
 from repositories.repo_repository import RepoRepository
 from schemas.repo_schemas import ConnectRepoRequest, RepoResponse
 from db.models import User, PipelineRun
 from graph.state import DevDocState
 from graph.pipeline import get_compiled_pipeline, run_pipeline
+
+_background_tasks: set[asyncio.Task] = set()
 class RepoService:
 
     @staticmethod
@@ -81,7 +83,9 @@ class RepoService:
         )
 
         doc_graph, _ = await get_compiled_pipeline()
-        await run_pipeline(initial_state, doc_graph)
+        task = asyncio.create_task(run_pipeline(initial_state, doc_graph))
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
 
         return {"status": "pipeline_started", "thread_id": thread_id}
 

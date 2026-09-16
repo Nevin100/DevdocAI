@@ -160,23 +160,30 @@ export default function DashboardPage() {
   }
 
   async function connectRepo(gh: GithubRepo) {
-    setConnecting(gh.github_repo_id);
-    try {
-      const connected = await repos.connect({
-        github_repo_id: gh.github_repo_id,
-        full_name: gh.full_name,
-        default_branch: gh.default_branch,
-      });
-      setShowPicker(false);
-      setRunningRepoName(connected.full_name);
-      const { thread_id } = await repos.run(connected.id);
-      router.push(`/review?thread=${thread_id}`);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to connect repo");
-      setConnecting(null);
-      setRunningRepoName(null);
+  setConnecting(gh.github_repo_id);
+  try {
+    const connected = await repos.connect({
+      github_repo_id: gh.github_repo_id,
+      full_name: gh.full_name,
+      default_branch: gh.default_branch,
+    });
+    setShowPicker(false);
+    setRunningRepoName(connected.full_name);
+    const { thread_id } = await repos.run(connected.id);
+
+    while (true) {
+      const state = await pipeline.getState(thread_id);
+      if (state.current_step === "human_review" || state.completed) break;
+      await new Promise((r) => setTimeout(r, 3000));
     }
+
+    router.push(`/review?thread=${thread_id}`);
+  } catch (err) {
+    alert(err instanceof Error ? err.message : "Failed to connect repo");
+    setConnecting(null);
+    setRunningRepoName(null);
   }
+}
 
   // Filtered lists
   const filteredRepos = useMemo(() => {
