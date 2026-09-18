@@ -38,7 +38,7 @@ async def list_github_repos(
     if not user or not user.github_access_token:
         return {"repos": [], "error": "GitHub account not linked"}
 
-    return list_user_repos.invoke({
+    return list_user_repos.ainvoke({
         "encrypted_token": user.github_access_token,
     })
 

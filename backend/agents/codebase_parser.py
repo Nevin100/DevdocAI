@@ -84,7 +84,7 @@ async def codebase_parser_node(state: DevDocState) -> dict:
     print(f"🔍 Parsing repo: {state.repo_full_name}")
 
     # Step 1 — Get all .py files
-    result = list_python_files.invoke({
+    result = list_python_files.ainvoke({
         "encrypted_token": state.encrypted_github_token,
         "repo_full_name": state.repo_full_name,
     })
@@ -104,7 +104,7 @@ async def codebase_parser_node(state: DevDocState) -> dict:
             continue
 
         # Fetch file content via MCP tool
-        file_result = get_file_content.invoke({
+        file_result = get_file_content.ainvoke({
             "encrypted_token": state.encrypted_github_token,
             "repo_full_name": state.repo_full_name,
             "file_path": file_path,
