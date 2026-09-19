@@ -178,8 +178,12 @@ export default function DashboardPage() {
       const { thread_id } = await repos.run(connected.id);
 
       while (true) {
-        const state = await pipeline.getState(thread_id);
-        if (state.current_step === "human_review" || state.completed) break;
+        try {
+          const state = await pipeline.getState(thread_id);
+          if (state.current_step === "human_review" || state.completed) break;
+        } catch (err) {
+          console.warn("Polling error, retrying...", err);
+        }
         await new Promise((r) => setTimeout(r, 3000));
       }
 
