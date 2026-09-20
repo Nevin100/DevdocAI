@@ -531,7 +531,6 @@ export default function DashboardPage() {
                             router.push(`/review?thread=${thread_id}`);
                           } catch (err) {
                             console.warn("Trigger pipeline error", err);
-                            setRunningRepoName(null);
                           }
                         }}
                         className="btn btn-primary btn-sm flex-1 rounded-xl text-xs font-semibold normal-case shadow-md shadow-primary/20 active:scale-95"

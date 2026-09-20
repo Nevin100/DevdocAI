@@ -1,14 +1,16 @@
 import os
+import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
 
 from graph.pipeline import get_compiled_pipeline
 from config import get_settings
-from db.database import init_db
+from db.database import init_db, AsyncSessionLocal
 from vectorstore.qdrant_store import ensure_collection_exists
 
 settings = get_settings()
@@ -25,14 +27,32 @@ from chat.routes import router as chat_router
 
 limiter = Limiter(key_func=get_remote_address)
 
+async def keepalive_task():
+    while True:
+        await asyncio.sleep(240)  # har 4 min
+        try:
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
+        except Exception as e:
+            print(f"Keepalive failed: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"Starting up {settings.APP_NAME} v{settings.APP_VERSION}")
     await init_db()
     print("Database initialized.. Tables created..")
     await ensure_collection_exists()
-    await get_compiled_pipeline() 
+    doc_graph, _ = await get_compiled_pipeline()
+    try:
+        config = {"configurable": {"thread_id": "warmup-probe"}}
+        await doc_graph.aget_state(config)
+    except Exception:
+        pass
+    print("Pipeline warmed up.")
+    task = asyncio.create_task(keepalive_task())
     yield
+    task.cancel()
     print(f"Shutting down {settings.APP_NAME} v{settings.APP_VERSION}")
 
 
