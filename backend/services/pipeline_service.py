@@ -23,9 +23,13 @@ class PipelineService:
 
         values = snapshot.values
 
+        # LangGraph interrupt pe current node "next" tuple me hota hai
+        next_nodes = snapshot.next or ()
+        current_step = next_nodes[0] if next_nodes else values.get("current_step", "unknown")
+
         return PipelineStateResponse(
             thread_id=thread_id,
-            current_step=values.get("current_step", "unknown"),
+            current_step=current_step,
             review_status=values.get("review_status", "pending"),
             generated_docs=values.get("enriched_docs") or values.get("generated_docs", []),
             completed=values.get("completed", False),
