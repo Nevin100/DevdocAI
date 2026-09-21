@@ -23,9 +23,14 @@ class PipelineService:
 
         values = snapshot.values
 
-        # LangGraph interrupt pe current node "next" tuple me hota hai
+        # A checkpoint created by ``interrupt_before`` exposes the node that
+        # will run next.  Some LangGraph versions instead expose an internal
+        # ``__interrupt__`` marker, so normalise both representations for the
+        # browser rather than making the UI depend on a library detail.
         next_nodes = snapshot.next or ()
         current_step = next_nodes[0] if next_nodes else values.get("current_step", "unknown")
+        if current_step == "__interrupt__" or "human_review" in next_nodes:
+            current_step = "human_review"
 
         return PipelineStateResponse(
             thread_id=thread_id,

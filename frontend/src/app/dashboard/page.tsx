@@ -177,15 +177,7 @@ export default function DashboardPage() {
       setRunningRepoName(connected.full_name);
       const { thread_id } = await repos.run(connected.id);
 
-      while (true) {
-        try {
-          const state = await pipeline.getState(thread_id);
-          if (state.current_step === "human_review" || state.completed) break;
-        } catch (err) {
-          console.warn("Polling error, retrying...", err);
-        }
-        await new Promise((r) => setTimeout(r, 3000));
-      }
+      await waitForReviewCheckpoint(thread_id);
 
       router.push(`/review?thread=${thread_id}`);
     } catch (err) {
@@ -193,6 +185,27 @@ export default function DashboardPage() {
       setConnecting(null);
       setRunningRepoName(null);
     }
+  }
+
+  async function waitForReviewCheckpoint(threadId: string) {
+    const deadline = Date.now() + 5 * 60 * 1000;
+    let lastError: unknown;
+
+    while (Date.now() < deadline) {
+      try {
+        const state = await pipeline.getState(threadId);
+        if (state.current_step === "human_review" || state.completed) return;
+        lastError = undefined;
+      } catch (err) {
+        // The graph checkpoint may not exist for the first few seconds, but
+        // do not hide an incorrectly configured deployed API forever.
+        lastError = err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+
+    const detail = lastError instanceof Error ? ` Last error: ${lastError.message}` : "";
+    throw new Error(`Pipeline did not reach the review checkpoint within 5 minutes.${detail}`);
   }
 
   // Filtered lists
@@ -513,24 +526,15 @@ export default function DashboardPage() {
                           try {
                             const { thread_id } = await repos.run(repo.id);
 
-                            while (true) {
-                              try {
-                                const state =
-                                  await pipeline.getState(thread_id);
-                                if (
-                                  state.current_step === "human_review" ||
-                                  state.completed
-                                )
-                                  break;
-                              } catch (err) {
-                                console.warn("Polling error, retrying...", err);
-                              }
-                              await new Promise((r) => setTimeout(r, 3000));
-                            }
+                            await waitForReviewCheckpoint(thread_id);
 
                             router.push(`/review?thread=${thread_id}`);
                           } catch (err) {
-                            console.warn("Trigger pipeline error", err);
+                            alert(
+                              err instanceof Error
+                                ? err.message
+                                : "Could not reach the review checkpoint.",
+                            );
                           }
                         }}
                         className="btn btn-primary btn-sm flex-1 rounded-xl text-xs font-semibold normal-case shadow-md shadow-primary/20 active:scale-95"
