@@ -191,7 +191,6 @@ async function connectRepo(gh: GithubRepo) {
         router.push(`/review?thread=${thread_id}`);
       };
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to connect repo");
       setConnecting(null);
       // Do NOT setRunningRepoName(null) on error — keep loader visible
     }
@@ -528,13 +527,10 @@ async function connectRepo(gh: GithubRepo) {
                               // Pipeline running in background, still navigate to review
                               router.push(`/review?thread=${thread_id}`);
                             };
-                          } catch (err) {
-                            alert(
-                              err instanceof Error
-                                ? err.message
-                                : "Could not reach the review checkpoint.",
-                            );
-                          }
+} catch (err) {
+      // Pipeline runs in background regardless, navigate to review
+      router.push(`/review?thread=${thread_id}`);
+    }
                         }}
                         className="btn btn-primary btn-sm flex-1 rounded-xl text-xs font-semibold normal-case shadow-md shadow-primary/20 active:scale-95"
                       >
