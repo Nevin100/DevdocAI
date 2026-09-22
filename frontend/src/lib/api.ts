@@ -93,6 +93,31 @@ export const pipeline = {
       method: "POST",
       body: JSON.stringify({ thread_id: threadId, review_status: reviewStatus, dev_notes: devNotes }),
     }),
+  streamState: (threadId: string, onUpdate: (data: PipelineState) => void) => {
+    const eventSource = new EventSource(`${API_URL}/pipeline/${threadId}/stream`, {
+      withCredentials: true,
+    });
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.error) {
+          console.error("SSE error:", data.error);
+          return;
+        }
+        onUpdate(data);
+      } catch (err) {
+        console.error("Failed to parse SSE data:", err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("SSE connection error:", err);
+      eventSource.close();
+    };
+
+    return eventSource;
+  },
 };
 
 // ── Chat ─────────────────────────────────────────────────────────────────────

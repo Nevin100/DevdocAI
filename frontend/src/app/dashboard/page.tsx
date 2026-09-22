@@ -165,7 +165,7 @@ export default function DashboardPage() {
     }
   }
 
-  async function connectRepo(gh: GithubRepo) {
+async function connectRepo(gh: GithubRepo) {
     setConnecting(gh.github_repo_id);
     try {
       const connected = await repos.connect({
@@ -177,35 +177,24 @@ export default function DashboardPage() {
       setRunningRepoName(connected.full_name);
       const { thread_id } = await repos.run(connected.id);
 
-      await waitForReviewCheckpoint(thread_id);
+      // Use SSE to wait for human_review checkpoint
+      const eventSource = pipeline.streamState(thread_id, (data) => {
+        if (data.current_step === "human_review" || data.completed) {
+          eventSource.close();
+          router.push(`/review?thread=${thread_id}`);
+        }
+      });
 
-      router.push(`/review?thread=${thread_id}`);
+      eventSource.onerror = () => {
+        eventSource.close();
+        // Pipeline running in background, still navigate to review
+        router.push(`/review?thread=${thread_id}`);
+      };
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to connect repo");
       setConnecting(null);
-      setRunningRepoName(null);
+      // Do NOT setRunningRepoName(null) on error — keep loader visible
     }
-  }
-
-  async function waitForReviewCheckpoint(threadId: string) {
-    const deadline = Date.now() + 5 * 60 * 1000;
-    let lastError: unknown;
-
-    while (Date.now() < deadline) {
-      try {
-        const state = await pipeline.getState(threadId);
-        if (state.current_step === "human_review" || state.completed) return;
-        lastError = undefined;
-      } catch (err) {
-        // The graph checkpoint may not exist for the first few seconds, but
-        // do not hide an incorrectly configured deployed API forever.
-        lastError = err;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-    }
-
-    const detail = lastError instanceof Error ? ` Last error: ${lastError.message}` : "";
-    throw new Error(`Pipeline did not reach the review checkpoint within 5 minutes.${detail}`);
   }
 
   // Filtered lists
@@ -520,15 +509,25 @@ export default function DashboardPage() {
                         <span>Review Docs</span>
                       </button>
                     ) : (
-                      <button
+<button
                         onClick={async () => {
                           setRunningRepoName(repo.full_name);
                           try {
                             const { thread_id } = await repos.run(repo.id);
 
-                            await waitForReviewCheckpoint(thread_id);
+                            // Use SSE to wait for human_review checkpoint
+                            const eventSource = pipeline.streamState(thread_id, (data) => {
+                              if (data.current_step === "human_review" || data.completed) {
+                                eventSource.close();
+                                router.push(`/review?thread=${thread_id}`);
+                              }
+                            });
 
-                            router.push(`/review?thread=${thread_id}`);
+                            eventSource.onerror = () => {
+                              eventSource.close();
+                              // Pipeline running in background, still navigate to review
+                              router.push(`/review?thread=${thread_id}`);
+                            };
                           } catch (err) {
                             alert(
                               err instanceof Error
