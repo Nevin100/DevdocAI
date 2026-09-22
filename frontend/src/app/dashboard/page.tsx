@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
@@ -511,7 +512,7 @@ async function connectRepo(gh: GithubRepo) {
 <button
                         onClick={async () => {
                           setRunningRepoName(repo.full_name);
-                          let thread_id: string;
+                          let thread_id = "";
                           try {
                             const result = await repos.run(repo.id);
                             thread_id = result.thread_id;
@@ -531,7 +532,9 @@ async function connectRepo(gh: GithubRepo) {
                             };
                           } catch (err) {
                             // Pipeline runs in background regardless, navigate to review
-                            router.push(`/review?thread=${thread_id}`);
+                            if (thread_id) {
+                              router.push(`/review?thread=${thread_id}`);
+                            }
                           }
                         }}
                         className="btn btn-primary btn-sm flex-1 rounded-xl text-xs font-semibold normal-case shadow-md shadow-primary/20 active:scale-95"
