@@ -507,12 +507,14 @@ async function connectRepo(gh: GithubRepo) {
                         )}
                         <span>Review Docs</span>
                       </button>
-                    ) : (
+) : (
 <button
                         onClick={async () => {
                           setRunningRepoName(repo.full_name);
+                          let thread_id: string;
                           try {
-                            const { thread_id } = await repos.run(repo.id);
+                            const result = await repos.run(repo.id);
+                            thread_id = result.thread_id;
 
                             // Use SSE to wait for human_review checkpoint
                             const eventSource = pipeline.streamState(thread_id, (data) => {
@@ -527,10 +529,10 @@ async function connectRepo(gh: GithubRepo) {
                               // Pipeline running in background, still navigate to review
                               router.push(`/review?thread=${thread_id}`);
                             };
-} catch (err) {
-      // Pipeline runs in background regardless, navigate to review
-      router.push(`/review?thread=${thread_id}`);
-    }
+                          } catch (err) {
+                            // Pipeline runs in background regardless, navigate to review
+                            router.push(`/review?thread=${thread_id}`);
+                          }
                         }}
                         className="btn btn-primary btn-sm flex-1 rounded-xl text-xs font-semibold normal-case shadow-md shadow-primary/20 active:scale-95"
                       >
