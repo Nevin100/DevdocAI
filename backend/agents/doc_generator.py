@@ -86,6 +86,45 @@ def format_functions(functions: list) -> str:
         )
     return "\n".join(result)
 
+async def _generate_doc_for_module(module: dict, dev_notes_section: str, chain) -> dict | None:
+    """Generate docs for a single module with retry logic."""
+    if "error" in module:
+        print(f" Skipping errored module: {module.get('file_path')}")
+        return None
+
+    print(f"🤖 Generating docs for: {module['file_path']}")
+
+    max_retries = 3
+    response = None
+    for attempt in range(max_retries):
+        try:
+            response = await chain.ainvoke({
+                "file_path": module["file_path"],
+                "module_name": module["module_name"],
+                "docstring": module.get("docstring") or "No module docstring",
+                "classes": format_classes(module.get("classes", [])),
+                "functions": format_functions(module.get("functions", [])),
+                "imports": ", ".join(module.get("imports", [])) or "None",
+                "dev_notes_section": dev_notes_section,
+            })
+            break
+        except RateLimitError:
+            wait_time = 2 ** attempt
+            print(f"⏳ Rate limited, waiting {wait_time}s before retry...")
+            await asyncio.sleep(wait_time)
+
+    if response is None:
+        print(f"⚠️ Skipping {module['file_path']} after {max_retries} failed attempts")
+        return None
+
+    return {
+        "doc_id": str(uuid.uuid4()),
+        "file_path": module["file_path"],
+        "module_name": module["module_name"],
+        "content": response.content,
+    }
+
+
 # LangGraph node — generates structured Markdown docs for each parsed module.
 async def doc_generator_node(state: DevDocState) -> dict:
     """
@@ -94,7 +133,7 @@ async def doc_generator_node(state: DevDocState) -> dict:
     Steps:
     1. For each parsed_module from codebase_parser
     2. Build prompt with AST data
-    3. Call Groq LLM
+    3. Call Groq LLM (5 files concurrently per batch, 1s delay between batches)
     4. Return generated_docs list
 
     If review_status is "rejected", uses dev_notes as feedback for regeneration.
@@ -106,51 +145,33 @@ async def doc_generator_node(state: DevDocState) -> dict:
     if state.review_status == "rejected" and state.dev_notes:
         dev_notes_section = f"**Dev Feedback (incorporate this):** {state.dev_notes}"
 
+    chain = DOC_PROMPT | llm
+
+    # Filter out errored modules upfront
+    valid_modules = [m for m in state.parsed_modules if "error" not in m]
     generated_docs = []
 
-    for module in state.parsed_modules:
-        if "error" in module:
-            print(f" Skipping errored module: {module.get('file_path')}")
-            continue
+    BATCH_SIZE = 5
+    BATCH_DELAY = 1.0
 
+    for i in range(0, len(valid_modules), BATCH_SIZE):
+        batch = valid_modules[i:i + BATCH_SIZE]
+        print(f"📦 Processing batch {i // BATCH_SIZE + 1}/{(len(valid_modules) + BATCH_SIZE - 1) // BATCH_SIZE} ({len(batch)} files)")
 
-        # Build prompt
-        print(f"🤖 Generating docs for: {module['file_path']}")
+        tasks = [_generate_doc_for_module(module, dev_notes_section, chain) for module in batch]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Build prompt
-        chain = DOC_PROMPT | llm
+        for module, result in zip(batch, results):
+            if isinstance(result, Exception):
+                print(f"⚠️ Error generating docs for {module['file_path']}: {result}")
+                continue
+            if result is not None:
+                generated_docs.append(result)
+                print(f"✅ Docs generated: {module['file_path']}")
 
-        max_retries = 3
-        response = None
-        for attempt in range(max_retries):
-            try:
-                response = await chain.ainvoke({
-                "file_path": module["file_path"],
-                "module_name": module["module_name"],
-                "docstring": module.get("docstring") or "No module docstring",
-                "classes": format_classes(module.get("classes", [])),
-                "functions": format_functions(module.get("functions", [])),
-                "imports": ", ".join(module.get("imports", [])) or "None",
-                "dev_notes_section": dev_notes_section,
-            })
-                break
-            except RateLimitError:
-                wait_time = 2 ** attempt
-                print(f"⏳ Rate limited, waiting {wait_time}s before retry...")
-                await asyncio.sleep(wait_time)
-
-        if response is None:
-            print(f"⚠️ Skipping {module['file_path']} after {max_retries} failed attempts")
-            continue
-
-        generated_docs.append({
-            "doc_id": str(uuid.uuid4()),
-            "file_path": module["file_path"],
-            "module_name": module["module_name"],
-            "content": response.content,
-        })
-
-        print(f"Docs generated: {module['file_path']}")
+        # Delay between batches (except after the last batch)
+        if i + BATCH_SIZE < len(valid_modules):
+            await asyncio.sleep(BATCH_DELAY)
 
     return {
         "generated_docs": generated_docs,
