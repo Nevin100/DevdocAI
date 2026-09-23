@@ -1,4 +1,5 @@
 import uuid
+import hashlib
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from graph.state import DevDocState
@@ -14,6 +15,13 @@ llm = ChatGroq(
     model=settings.GROQ_MODEL,
     temperature=0.3,   # low temp = consistent, structured output
 )
+
+# In-memory cache for generated docs (content hash -> generated doc)
+# Key: hash of (file_path + module_content + dev_notes_section)
+_doc_cache: dict[str, dict] = {}
+
+# Semaphore to limit concurrent LLM calls (respect rate limits)
+_llm_semaphore = asyncio.Semaphore(8)  # 8 concurrent LLM calls
 
 # Prompt template for doc generation
 DOC_PROMPT = ChatPromptTemplate.from_messages([
@@ -87,42 +95,67 @@ def format_functions(functions: list) -> str:
     return "\n".join(result)
 
 async def _generate_doc_for_module(module: dict, dev_notes_section: str, chain) -> dict | None:
-    """Generate docs for a single module with retry logic."""
+    """Generate docs for a single module with retry logic and caching."""
     if "error" in module:
         print(f" Skipping errored module: {module.get('file_path')}")
         return None
+
+    # Create cache key from module content + dev notes
+    module_content = f"{module['file_path']}{module['module_name']}{module.get('docstring','')}{module.get('classes','')}{module.get('functions','')}{module.get('imports','')}{dev_notes_section}"
+    cache_key = hashlib.sha256(module_content.encode()).hexdigest()
+    
+    if cache_key in _doc_cache:
+        print(f"♻️ Cache hit (skipping LLM): {module['file_path']}")
+        cached = _doc_cache[cache_key]
+        # Return new doc_id but cached content
+        return {
+            "doc_id": str(uuid.uuid4()),
+            "file_path": cached["file_path"],
+            "module_name": cached["module_name"],
+            "content": cached["content"],
+        }
 
     print(f"🤖 Generating docs for: {module['file_path']}")
 
     max_retries = 3
     response = None
-    for attempt in range(max_retries):
-        try:
-            response = await chain.ainvoke({
-                "file_path": module["file_path"],
-                "module_name": module["module_name"],
-                "docstring": module.get("docstring") or "No module docstring",
-                "classes": format_classes(module.get("classes", [])),
-                "functions": format_functions(module.get("functions", [])),
-                "imports": ", ".join(module.get("imports", [])) or "None",
-                "dev_notes_section": dev_notes_section,
-            })
-            break
-        except RateLimitError:
-            wait_time = 2 ** attempt
-            print(f"⏳ Rate limited, waiting {wait_time}s before retry...")
-            await asyncio.sleep(wait_time)
+    async with _llm_semaphore:
+        for attempt in range(max_retries):
+            try:
+                response = await chain.ainvoke({
+                    "file_path": module["file_path"],
+                    "module_name": module["module_name"],
+                    "docstring": module.get("docstring") or "No module docstring",
+                    "classes": format_classes(module.get("classes", [])),
+                    "functions": format_functions(module.get("functions", [])),
+                    "imports": ", ".join(module.get("imports", [])) or "None",
+                    "dev_notes_section": dev_notes_section,
+                })
+                break
+            except RateLimitError:
+                wait_time = 2 ** attempt
+                print(f"⏳ Rate limited, waiting {wait_time}s before retry...")
+                await asyncio.sleep(wait_time)
 
     if response is None:
         print(f"⚠️ Skipping {module['file_path']} after {max_retries} failed attempts")
         return None
 
-    return {
+    result = {
         "doc_id": str(uuid.uuid4()),
         "file_path": module["file_path"],
         "module_name": module["module_name"],
         "content": response.content,
     }
+    
+    # Cache the result
+    _doc_cache[cache_key] = {
+        "file_path": module["file_path"],
+        "module_name": module["module_name"],
+        "content": response.content,
+    }
+    
+    return result
 
 
 # LangGraph node — generates structured Markdown docs for each parsed module.
@@ -133,7 +166,7 @@ async def doc_generator_node(state: DevDocState) -> dict:
     Steps:
     1. For each parsed_module from codebase_parser
     2. Build prompt with AST data
-    3. Call Groq LLM (5 files concurrently per batch, 1s delay between batches)
+    3. Call Groq LLM (up to 8 concurrent via semaphore, cached results skip L entirely)
     4. Return generated_docs list
 
     If review_status is "rejected", uses dev_notes as feedback for regeneration.
@@ -151,27 +184,18 @@ async def doc_generator_node(state: DevDocState) -> dict:
     valid_modules = [m for m in state.parsed_modules if "error" not in m]
     generated_docs = []
 
-    BATCH_SIZE = 5
-    BATCH_DELAY = 1.0
+    # Process all modules concurrently (semaphore limits to 8 LLM calls)
+    # Cache hits return instantly without LLM call
+    tasks = [_generate_doc_for_module(module, dev_notes_section, chain) for module in valid_modules]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    for i in range(0, len(valid_modules), BATCH_SIZE):
-        batch = valid_modules[i:i + BATCH_SIZE]
-        print(f"📦 Processing batch {i // BATCH_SIZE + 1}/{(len(valid_modules) + BATCH_SIZE - 1) // BATCH_SIZE} ({len(batch)} files)")
-
-        tasks = [_generate_doc_for_module(module, dev_notes_section, chain) for module in batch]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for module, result in zip(batch, results):
-            if isinstance(result, Exception):
-                print(f"⚠️ Error generating docs for {module['file_path']}: {result}")
-                continue
-            if result is not None:
-                generated_docs.append(result)
-                print(f"✅ Docs generated: {module['file_path']}")
-
-        # Delay between batches (except after the last batch)
-        if i + BATCH_SIZE < len(valid_modules):
-            await asyncio.sleep(BATCH_DELAY)
+    for module, result in zip(valid_modules, results):
+        if isinstance(result, Exception):
+            print(f"⚠️ Error generating docs for {module['file_path']}: {result}")
+            continue
+        if result is not None:
+            generated_docs.append(result)
+            print(f"✅ Docs generated: {module['file_path']}")
 
     return {
         "generated_docs": generated_docs,
