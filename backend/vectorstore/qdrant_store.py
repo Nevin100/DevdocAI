@@ -118,3 +118,22 @@ async def search_documents(query: str, repo_id: str, top_k: int = 5) -> list[dic
         }
         for hit in results
     ]
+
+
+async def delete_document(vector_id: str) -> bool:
+    """
+    Delete a document from Qdrant by vector ID.
+    """
+    client = get_async_qdrant_client()
+    
+    try:
+        await client.delete(
+            collection_name=settings.QDRANT_COLLECTION_NAME,
+            points_selector=[vector_id]
+        )
+        await client.close()
+        return True
+    except Exception as e:
+        print(f"⚠️ Failed to delete document from Qdrant: {e}")
+        await client.close()
+        return False

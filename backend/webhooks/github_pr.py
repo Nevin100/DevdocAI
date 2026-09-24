@@ -59,6 +59,8 @@ async def github_webhook(
     # Get repo info from payload
     github_repo_id = str(payload["repository"]["id"])
     pr_number = pr["number"]
+    # Get head commit SHA from PR (the commit that was merged)
+    head_commit_sha = pr.get("head", {}).get("sha")
 
     print(f"🔀 PR #{pr_number} merged in repo {github_repo_id}")
 
@@ -111,6 +113,8 @@ async def github_webhook(
         await cache_delete(repo_docs_key(str(repo.id)))
 
     # Build initial state for the pipeline
+    # Include last_processed_commit for incremental diff processing
+    # Also pass head_commit_sha from PR for immediate diff computation
     initial_state = DevDocState(
         user_id=str(user.id),
         repo_id=str(repo.id),
@@ -120,6 +124,8 @@ async def github_webhook(
         thread_id=thread_id,
         trigger="pr_merge",
         pr_number=pr_number,
+        last_processed_commit=repo.last_processed_commit,  # For incremental diff
+        current_head_commit=head_commit_sha,  # Direct from PR payload
     )
 
     # Compile and run the pipeline (runs in background)

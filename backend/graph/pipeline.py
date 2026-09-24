@@ -9,6 +9,7 @@ from agents.doc_generator import doc_generator_node
 from agents.brave_researcher import brave_researcher_node
 from agents.doc_publisher import doc_publisher_node
 from agents.onboarding_chatbot import onboarding_chatbot_node
+from agents.compute_diff import compute_diff_node
 from config import get_settings
 
 settings = get_settings()
@@ -20,22 +21,28 @@ def build_doc_pipeline() -> StateGraph:
     Main documentation pipeline graph.
 
     Flow:
-    START → codebase_parser → doc_generator → brave_researcher
+    START → compute_diff → codebase_parser → doc_generator → brave_researcher
           → HITL checkpoint → doc_publisher → END
 
     HITL conditional:
       approved → doc_publisher
       rejected → doc_generator (retry with dev feedback)
+    
+    Incremental mode optimization:
+      compute_diff detects changed files → codebase_parser only processes those
+      doc_publisher handles removed files + updates last_processed_commit
     """
     builder = StateGraph(DevDocState)
 
+    builder.add_node("compute_diff", compute_diff_node)
     builder.add_node("codebase_parser", codebase_parser_node)
     builder.add_node("doc_generator", doc_generator_node)
     builder.add_node("brave_researcher", brave_researcher_node)
     builder.add_node("human_review", hitl_review_node)
     builder.add_node("doc_publisher", doc_publisher_node)
 
-    builder.add_edge(START, "codebase_parser")
+    builder.add_edge(START, "compute_diff")
+    builder.add_edge("compute_diff", "codebase_parser")
     builder.add_edge("codebase_parser", "doc_generator")
     builder.add_edge("doc_generator", "brave_researcher")
     builder.add_edge("brave_researcher", "human_review")

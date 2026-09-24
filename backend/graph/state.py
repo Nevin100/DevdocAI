@@ -23,6 +23,12 @@ class DevDocState(BaseModel):
     trigger: str = "manual"                 
     pr_number: int | None = None            
 
+    # Diff / Incremental processing
+    last_processed_commit: str | None = None  # SHA from previous successful run
+    current_head_commit: str | None = None    # Current HEAD SHA
+    changed_files: list[dict] = []            # [{filename, status, sha, previous_filename}]
+    processing_mode: str = "full"             # "full" | "incremental"
+
     # codebase_parser output 
     python_files: list[str] = []            
     parsed_modules: list[dict] = []         

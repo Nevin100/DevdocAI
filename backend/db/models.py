@@ -48,6 +48,7 @@ class Repository(Base):
     webhook_id: Mapped[str | None] = mapped_column(String(100), nullable=True) 
     status: Mapped[RepoStatus]  = mapped_column(SAEnum(RepoStatus), default=RepoStatus.CONNECTED)
     last_parsed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_processed_commit: Mapped[str | None] = mapped_column(String(100), nullable=True)  # SHA of last processed commit
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships

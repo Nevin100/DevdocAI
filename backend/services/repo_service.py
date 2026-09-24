@@ -80,6 +80,7 @@ class RepoService:
             pipeline_run_id=str(pipeline_run.id),
             thread_id=thread_id,
             trigger="manual",
+            last_processed_commit=repo.last_processed_commit,  # For incremental diff
         )
 
         doc_graph, _ = await get_compiled_pipeline()

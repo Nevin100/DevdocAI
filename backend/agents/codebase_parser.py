@@ -120,36 +120,74 @@ async def _fetch_and_parse_file(
     return parsed
 
 
-# LangGraph node — reads GitHub repo and parses all Python files at AST level.
+# LangGraph node — reads GitHub repo and parses Python files at AST level.
 async def codebase_parser_node(state: DevDocState) -> dict:
     """
-    LangGraph node — reads GitHub repo and parses all Python files at AST level.
+    LangGraph node — reads GitHub repo and parses Python files at AST level.
 
     Steps:
-    1. List all .py files in the repo
-    2. Fetch and parse files in parallel (with semaphore for rate limiting)
-    3. Return parsed_modules for doc_generator
+    1. If incremental mode with changed_files → only process those files
+    2. Else (full mode) → list all .py files and process all
+    3. Fetch and parse files in parallel (with semaphore for rate limiting)
+    4. Return parsed_modules for doc_generator
     """
-    print(f"🔍 Parsing repo: {state.repo_full_name}")
+    print(f"🔍 Parsing repo: {state.repo_full_name} (mode: {state.processing_mode})")
 
-    # Step 1 — Get all .py files
-    result = await list_python_files.ainvoke({
-        "encrypted_token": state.encrypted_github_token,
-        "repo_full_name": state.repo_full_name,
-    })
+    # Determine which files to process
+    if state.processing_mode == "incremental" and state.changed_files:
+        # Incremental: only process changed files (added/modified)
+        # For renamed files, we need to process the new filename
+        files_to_process = []
+        removed_files = []
+        
+        for change in state.changed_files:
+            status = change["status"]
+            filename = change["filename"]
+            
+            if status in ("added", "modified"):
+                files_to_process.append(filename)
+            elif status == "renamed":
+                # Process the new filename
+                files_to_process.append(filename)
+                # Track old filename for deletion
+                if change.get("previous_filename"):
+                    removed_files.append(change["previous_filename"])
+            elif status == "removed":
+                removed_files.append(filename)
+        
+        # Filter out test files and __pycache__
+        files_to_process = [
+            f for f in files_to_process
+            if not any(skip in f for skip in ["__pycache__", "test_", "_test.py", ".pyc"])
+        ]
+        removed_files = [
+            f for f in removed_files
+            if not any(skip in f for skip in ["__pycache__", "test_", "_test.py", ".pyc"])
+        ]
+        
+        print(f"📦 Incremental: processing {len(files_to_process)} changed files, {len(removed_files)} removed")
+        
+        python_files = files_to_process  # For tracking
+    else:
+        # Full mode: list all .py files
+        result = await list_python_files.ainvoke({
+            "encrypted_token": state.encrypted_github_token,
+            "repo_full_name": state.repo_full_name,
+        })
 
-    if "error" in result:
-        return {"errors": state.errors + [f"list_python_files failed: {result['error']}"]}
+        if "error" in result:
+            return {"errors": state.errors + [f"list_python_files failed: {result['error']}"]}
 
-    python_files = result["python_files"]
-    print(f"📁 Found {len(python_files)} Python files")
+        python_files = result["python_files"]
+        print(f"📁 Found {len(python_files)} Python files")
 
-    # Filter out test files and __pycache__
-    filtered_files = [
-        f for f in python_files
-        if not any(skip in f for skip in ["__pycache__", "test_", "_test.py", ".pyc"])
-    ]
-    print(f"📦 Processing {len(filtered_files)} files (excluded tests/cache)")
+        # Filter out test files and __pycache__
+        files_to_process = [
+            f for f in python_files
+            if not any(skip in f for skip in ["__pycache__", "test_", "_test.py", ".pyc"])
+        ]
+        removed_files = []
+        print(f"📦 Full: processing {len(files_to_process)} files (excluded tests/cache)")
 
     # Step 2 + 3 — Fetch and parse in parallel with concurrency control
     # Semaphore limits concurrent GitHub API calls (respect rate limits)
@@ -157,13 +195,13 @@ async def codebase_parser_node(state: DevDocState) -> dict:
     
     tasks = [
         _fetch_and_parse_file(f, state.encrypted_github_token, state.repo_full_name, semaphore)
-        for f in filtered_files
+        for f in files_to_process
     ]
     
     results = await asyncio.gather(*tasks, return_exceptions=True)
     
     parsed_modules = []
-    for file_path, result in zip(filtered_files, results):
+    for file_path, result in zip(files_to_process, results):
         if isinstance(result, Exception):
             print(f"⚠️ Error parsing {file_path}: {result}")
             continue
@@ -173,5 +211,6 @@ async def codebase_parser_node(state: DevDocState) -> dict:
     return {
         "python_files": python_files,
         "parsed_modules": parsed_modules,
+        "removed_files": removed_files,  # Track files to delete from docs
         "current_step": "codebase_parser",
     }

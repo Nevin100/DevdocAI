@@ -185,6 +185,63 @@ def list_user_repos(encrypted_token: str) -> dict:
     except GithubException as e:
         return {"error": str(e)}
 
+
+# Tool 7: Get commit diff (changed files between two commits)
+@tool
+def get_commit_diff(encrypted_token: str, repo_full_name: str, base_sha: str, head_sha: str) -> dict:
+    """
+    Get changed files between two commits.
+    Used for incremental pipeline runs.
+    Returns: added, modified, removed files with their status.
+    """
+    try:
+        client = get_github_client(encrypted_token)
+        repo = client.get_repo(repo_full_name)
+        
+        comparison = repo.compare(base_sha, head_sha)
+        
+        changed_files = []
+        for f in comparison.files:
+            if f.filename.endswith(".py"):  # Only Python files
+                changed_files.append({
+                    "filename": f.filename,
+                    "status": f.status,      # "added", "modified", "removed", "renamed"
+                    "sha": f.sha,
+                    "previous_filename": f.previous_filename if f.status == "renamed" else None,
+                })
+        
+        return {
+            "changed_files": changed_files,
+            "total_commits": comparison.total_commits,
+            "ahead_by": comparison.ahead_by,
+            "behind_by": comparison.behind_by,
+            "base_commit": base_sha,
+            "head_commit": head_sha,
+        }
+    except GithubException as e:
+        return {"error": str(e)}
+
+
+# Tool 8: Get latest commit SHA for default branch
+@tool
+def get_latest_commit_sha(encrypted_token: str, repo_full_name: str, branch: str = "main") -> dict:
+    """
+    Get the latest commit SHA for a branch.
+    Used to determine current HEAD for diff comparison.
+    """
+    try:
+        client = get_github_client(encrypted_token)
+        repo = client.get_repo(repo_full_name)
+        branch_obj = repo.get_branch(branch)
+        
+        return {
+            "sha": branch_obj.commit.sha,
+            "branch": branch,
+        }
+    except GithubException as e:
+        return {"error": str(e)}
+
+
 # All tools list (used by LangGraph agents)
 GITHUB_TOOLS = [
     get_repo_contents,
@@ -194,4 +251,6 @@ GITHUB_TOOLS = [
     get_repo_info,
     list_python_files,
     list_user_repos,   
+    get_commit_diff,
+    get_latest_commit_sha,
 ]
