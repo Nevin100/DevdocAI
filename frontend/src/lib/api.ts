@@ -118,6 +118,55 @@ export const pipeline = {
 
     return eventSource;
   },
+  // Poll pipeline state with short requests instead of one long-lived SSE
+  // connection. Cloudflare closes any request open longer than ~100s, which
+  // big repos always exceed — polling never hits that limit.
+  // Stops itself when the pipeline reaches human_review or completes.
+  pollState: (
+    threadId: string,
+    onUpdate: (data: PipelineState) => void,
+    options?: {
+      intervalMs?: number;
+      maxErrors?: number;
+      onError?: (err: unknown) => void;
+    },
+  ) => {
+    const intervalMs = options?.intervalMs ?? 5000;
+    const maxErrors = options?.maxErrors ?? 8;
+    let stopped = false;
+    let errors = 0;
+    let timer: ReturnType<typeof setInterval> | undefined;
+
+    const stop = () => {
+      stopped = true;
+      if (timer) clearInterval(timer);
+    };
+
+    const tick = async () => {
+      if (stopped) return;
+      try {
+        const data = await pipeline.getState(threadId);
+        errors = 0;
+        onUpdate(data);
+        if (data.current_step === "human_review" || data.completed) {
+          stop();
+        }
+      } catch (err) {
+        errors += 1;
+        // getState 404s until the first checkpoint exists — keep polling.
+        // After maxErrors consecutive failures, give up and report.
+        if (errors >= maxErrors) {
+          stop();
+          options?.onError?.(err);
+        }
+      }
+    };
+
+    void tick(); // check immediately, don't wait for the first interval
+    timer = setInterval(tick, intervalMs);
+
+    return { stop };
+  },
 };
 
 // ── Chat ─────────────────────────────────────────────────────────────────────

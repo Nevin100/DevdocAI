@@ -131,32 +131,64 @@ def get_repo_info(encrypted_token: str, repo_full_name: str) -> dict:
     except GithubException as e:
         return {"error": str(e)}
 
-# Tool 6: List Python files recursively 
+# Tool 6: List Python files recursively — FAST via recursive git-tree (1 API call)
 @tool
 def list_python_files(encrypted_token: str, repo_full_name: str, path: str = "") -> dict:
     """
     Recursively list all .py files in the repo.
+    Uses the recursive git-tree API (2 calls total: branch SHA + tree)
+    instead of one API call per directory.
     Used by codebase_parser to know which files to parse.
     """
     try:
         client = get_github_client(encrypted_token)
         repo = client.get_repo(repo_full_name)
 
-        python_files = []
+        # git-tree API needs a commit SHA — resolve it from the default branch
+        branch_name = repo.default_branch or "main"
+        try:
+            head_sha = repo.get_branch(branch_name).commit.sha
+        except GithubException:
+            head_sha = branch_name  # last resort: let the tree API try the ref name
 
-        def scan(current_path: str):
-            contents = repo.get_contents(current_path)
-            for item in contents:
-                if item.type == "dir":
-                    scan(item.path)  # recurse into subdirectory
-                elif item.name.endswith(".py"):
-                    python_files.append(item.path)
+        tree = repo.get_git_tree(head_sha, recursive=True)
 
-        scan(path)
+        if getattr(tree, "truncated", False):
+            # Extremely large repo (>100k entries) — fall back to directory scan
+            print("⚠️ Git tree truncated, falling back to per-directory scan")
+            return _list_python_files_slow(repo, path)
+
+        prefix = path.strip("/")
+        python_files = [
+            t.path
+            for t in tree.tree
+            if t.type == "blob"
+            and t.path.endswith(".py")
+            and (not prefix or t.path == prefix or t.path.startswith(prefix + "/"))
+        ]
 
         return {"python_files": python_files, "total": len(python_files)}
     except GithubException as e:
         return {"error": str(e)}
+
+
+def _list_python_files_slow(repo, path: str = "") -> dict:
+    """
+    Fallback for truncated git trees: old recursive per-directory listing.
+    Many API calls, but works when the tree API truncates.
+    """
+    python_files = []
+
+    def scan(current_path: str):
+        contents = repo.get_contents(current_path)
+        for item in contents:
+            if item.type == "dir":
+                scan(item.path)  # recurse into subdirectory
+            elif item.name.endswith(".py"):
+                python_files.append(item.path)
+
+    scan(path)
+    return {"python_files": python_files, "total": len(python_files)}
 
 @tool
 def list_user_repos(encrypted_token: str) -> dict:

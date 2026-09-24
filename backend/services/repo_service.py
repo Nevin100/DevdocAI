@@ -1,7 +1,8 @@
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc
+from datetime import datetime
 import asyncio
 from repositories.repo_repository import RepoRepository
 from schemas.repo_schemas import ConnectRepoRequest, RepoResponse
@@ -10,6 +11,48 @@ from graph.state import DevDocState
 from graph.pipeline import get_compiled_pipeline, run_pipeline
 
 _background_tasks: set[asyncio.Task] = set()
+
+
+async def _run_pipeline_bg(initial_state: DevDocState, pipeline_run_id: uuid.UUID):
+    """
+    Run the pipeline in the background and keep the PipelineRun row in sync:
+    running → paused (waiting for human review) | completed | failed.
+    """
+    from db.database import async_session_local
+
+    final_status = "failed"
+    try:
+        doc_graph, _ = await get_compiled_pipeline()
+        config = await run_pipeline(initial_state, doc_graph)
+
+        # run_pipeline returns when the graph pauses OR finishes.
+        # Checkpoint me 'next' set hai = human_review pe paused hai.
+        try:
+            snapshot = await doc_graph.aget_state(config)
+            final_status = "paused" if snapshot.next else "completed"
+        except Exception:
+            final_status = "completed"
+
+        print(f"✅ Pipeline {final_status} — thread: {initial_state.thread_id}")
+    except Exception as e:
+        final_status = "failed"
+        print(f"❌ Pipeline failed — thread {initial_state.thread_id}: {e}")
+
+    try:
+        async with async_session_local() as db:
+            result = await db.execute(
+                select(PipelineRun).where(PipelineRun.id == pipeline_run_id)
+            )
+            run = result.scalar_one_or_none()
+            if run:
+                run.status = final_status
+                if final_status in ("completed", "failed"):
+                    run.completed_at = datetime.utcnow()
+                await db.commit()
+    except Exception as db_e:
+        print(f"⚠️ Could not update pipeline run status: {db_e}")
+
+
 class RepoService:
 
     @staticmethod
@@ -83,8 +126,7 @@ class RepoService:
             last_processed_commit=repo.last_processed_commit,  # For incremental diff
         )
 
-        doc_graph, _ = await get_compiled_pipeline()
-        task = asyncio.create_task(run_pipeline(initial_state, doc_graph))
+        task = asyncio.create_task(_run_pipeline_bg(initial_state, pipeline_run.id))
         _background_tasks.add(task)
         task.add_done_callback(_background_tasks.discard)
 
@@ -107,3 +149,36 @@ class RepoService:
         )
 
         return {"thread_id": run.thread_id}
+
+    @staticmethod
+    async def list_pipeline_runs(
+        repo_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession, limit: int = 10
+    ) -> list[dict]:
+        """Recent pipeline runs for a repo, newest first — taaki dikhe
+        ki bade repo ka run abhi chal raha hai ya kahin atak gaya."""
+        repo = await RepoRepository.get_by_id(repo_id, db)
+        if not repo or repo.owner_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Repository not found",
+            )
+
+        result = await db.execute(
+            select(PipelineRun)
+            .where(PipelineRun.repo_id == repo.id)
+            .order_by(desc(PipelineRun.started_at))
+            .limit(limit)
+        )
+        runs = result.scalars().all()
+        return [
+            {
+                "id": str(r.id),
+                "thread_id": r.thread_id,
+                "trigger": r.trigger,
+                "pr_number": r.pr_number,
+                "status": r.status,
+                "started_at": r.started_at.isoformat() if r.started_at else None,
+                "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+            }
+            for r in runs
+        ]

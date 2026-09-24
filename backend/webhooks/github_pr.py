@@ -1,3 +1,4 @@
+import asyncio
 import hmac
 import hashlib
 import uuid
@@ -15,6 +16,10 @@ from config import get_settings
 settings = get_settings()
 router = APIRouter()
 
+# Background tasks ke strong refs — warna GC beech me task maar dega
+_background_tasks: set[asyncio.Task] = set()
+
+
 def verify_github_signature(payload: bytes, signature: str, secret: str) -> bool:
     """
     Verify that the webhook actually came from GitHub.
@@ -27,8 +32,40 @@ def verify_github_signature(payload: bytes, signature: str, secret: str) -> bool
     ).hexdigest()
     return hmac.compare_digest(expected, signature)
 
-# GitHub webhook endpoint
-@router.post("/github")
+
+async def _run_pipeline_bg(initial_state: DevDocState):
+    """
+    Pipeline background me chalao — webhook request kabhi block nahi hogi.
+    Complete/fail hone par PipelineRun row update karo taaki UI me status dikhe.
+    """
+    try:
+        doc_graph, _ = await get_compiled_pipeline()
+        await run_pipeline(initial_state, doc_graph)
+        final_status = "completed"
+        print(f"✅ Pipeline finished — thread: {initial_state.thread_id}")
+    except Exception as e:
+        final_status = "failed"
+        print(f"❌ Pipeline failed — thread {initial_state.thread_id}: {e}")
+
+    try:
+        async with async_session_local() as db:
+            result = await db.execute(
+                select(PipelineRun).where(
+                    PipelineRun.id == uuid.UUID(initial_state.pipeline_run_id)
+                )
+            )
+            run = result.scalar_one_or_none()
+            if run:
+                run.status = final_status
+                await db.commit()
+    except Exception as db_e:
+        print(f"⚠️ Could not update pipeline run status: {db_e}")
+    finally:
+        await cache_delete(pipeline_status_key(initial_state.thread_id))
+
+
+# GitHub webhook endpoint — turant 202, pipeline background me
+@router.post("/github", status_code=202)
 async def github_webhook(
     request: Request,
     x_github_event: str = Header(None),
@@ -39,7 +76,7 @@ async def github_webhook(
     We only care about pull_request events where action=closed and merged=true.
 
     Flow:
-    PR merged → GitHub sends webhook → we find the repo → trigger pipeline
+    PR merged → GitHub sends webhook → we find the repo → queue pipeline → 202 immediately
     """
     payload_bytes = await request.body()
     payload = await request.json()
@@ -128,11 +165,12 @@ async def github_webhook(
         current_head_commit=head_commit_sha,  # Direct from PR payload
     )
 
-    # Compile and run the pipeline (runs in background)
-    doc_graph, _ = await get_compiled_pipeline()
-    await run_pipeline(initial_state, doc_graph)
+    # Fire-and-forget: pipeline background me chalega, GitHub ko turant 202
+    task = asyncio.create_task(_run_pipeline_bg(initial_state))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
-    print(f" Pipeline started for PR #{pr_number} — thread: {thread_id}")
+    print(f"🚀 Pipeline queued for PR #{pr_number} — thread: {thread_id}")
 
     return {
         "status": "pipeline_started",

@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from qdrant_client import QdrantClient, AsyncQdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct, PayloadSchemaType
@@ -63,8 +64,9 @@ async def store_document(doc_id: str, content: str, metadata: dict) -> str:
     """
     client = get_async_qdrant_client()
 
-    # Generate embedding using Cohere
-    vector = embeddings.embed_query(content)
+    # Generate embedding using sentence-transformers (runs in a thread so the
+    # event loop isn't blocked by the sync HF call)
+    vector = await asyncio.to_thread(embeddings.embed_query, content)
 
     point = PointStruct(
         id=str(uuid.uuid4()),
@@ -74,7 +76,7 @@ async def store_document(doc_id: str, content: str, metadata: dict) -> str:
             "file_path": metadata.get("file_path", ""),
             "module_name": metadata.get("module_name", ""),
             "repo_id": metadata.get("repo_id", ""),
-            "content": content[:4000],   # store first 1000 chars for retrieval context
+            "content": content[:4000],   # store first 4000 chars for retrieval context
         }
     )
     await client.upsert(
@@ -84,6 +86,50 @@ async def store_document(doc_id: str, content: str, metadata: dict) -> str:
 
     await client.close()
     return str(point.id)
+
+async def store_documents_batch(docs: list[dict]) -> list[str]:
+    """
+    Embed + upsert MANY docs with ONE Qdrant client, ONE batch embedding call,
+    and ONE upsert — instead of N clients + N embedding calls + N upserts.
+
+    Each doc: {"doc_id": str, "content": str, "file_path": str,
+               "module_name": str, "repo_id": str}
+    Returns vector IDs in the same order as input.
+    """
+    if not docs:
+        return []
+
+    client = get_async_qdrant_client()
+    try:
+        # ONE embedding call for all docs. HF batches internally and it's
+        # sync/CPU-bound, so run it in a thread to keep the event loop free.
+        contents = [d["content"] for d in docs]
+        vectors = await asyncio.to_thread(embeddings.embed_documents, contents)
+
+        points = [
+            PointStruct(
+                id=str(uuid.uuid4()),
+                vector=vector,
+                payload={
+                    "doc_id": d["doc_id"],
+                    "file_path": d.get("file_path", ""),
+                    "module_name": d.get("module_name", ""),
+                    "repo_id": d.get("repo_id", ""),
+                    "content": d["content"][:4000],   # first 4000 chars for retrieval
+                },
+            )
+            for d, vector in zip(docs, vectors)
+        ]
+
+        # ONE upsert for all points
+        await client.upsert(
+            collection_name=settings.QDRANT_COLLECTION_NAME,
+            points=points,
+        )
+        print(f"📦 Batch upserted {len(points)} vectors to Qdrant")
+        return [str(p.id) for p in points]
+    finally:
+        await client.close()
 
 async def search_documents(query: str, repo_id: str, top_k: int = 5) -> list[dict]:
     """
@@ -125,7 +171,7 @@ async def delete_document(vector_id: str) -> bool:
     Delete a document from Qdrant by vector ID.
     """
     client = get_async_qdrant_client()
-    
+
     try:
         await client.delete(
             collection_name=settings.QDRANT_COLLECTION_NAME,

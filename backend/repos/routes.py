@@ -38,7 +38,7 @@ async def list_github_repos(
     if not user or not user.github_access_token:
         return {"repos": [], "error": "GitHub account not linked"}
 
-    return list_user_repos.ainvoke({
+    return await list_user_repos.ainvoke({
         "encrypted_token": user.github_access_token,
     })
 
@@ -67,3 +67,11 @@ async def get_latest_thread(
     db: AsyncSession = Depends(get_db),
 ):
     return await RepoService.get_latest_thread(repo_id, user_id, db)
+
+@router.get("/repos/{repo_id}/runs")
+async def list_pipeline_runs(
+    repo_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await RepoService.list_pipeline_runs(repo_id, user_id, db)
