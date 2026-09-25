@@ -30,6 +30,9 @@ async_session_local = async_sessionmaker(
     class_=AsyncSession # Use AsyncSession for async operations
 )
 
+# Backwards-compat alias: main.py imports the PascalCase name
+AsyncSessionLocal = async_session_local
+
 # Base Class for Models
 class Base(DeclarativeBase):
     pass
