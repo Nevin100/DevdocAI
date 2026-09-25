@@ -1,5 +1,16 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// Error carrying the HTTP status so callers can distinguish a definitive
+// rejection (e.g. 413 repo-size gate) from a transient failure.
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -12,7 +23,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Request failed: ${res.status}`);
+    throw new ApiError(res.status, body.detail || `Request failed: ${res.status}`);
   }
 
   return res.json();
@@ -117,55 +128,6 @@ export const pipeline = {
     };
 
     return eventSource;
-  },
-  // Poll pipeline state with short requests instead of one long-lived SSE
-  // connection. Cloudflare closes any request open longer than ~100s, which
-  // big repos always exceed — polling never hits that limit.
-  // Stops itself when the pipeline reaches human_review or completes.
-  pollState: (
-    threadId: string,
-    onUpdate: (data: PipelineState) => void,
-    options?: {
-      intervalMs?: number;
-      maxErrors?: number;
-      onError?: (err: unknown) => void;
-    },
-  ) => {
-    const intervalMs = options?.intervalMs ?? 5000;
-    const maxErrors = options?.maxErrors ?? 8;
-    let stopped = false;
-    let errors = 0;
-    let timer: ReturnType<typeof setInterval> | undefined;
-
-    const stop = () => {
-      stopped = true;
-      if (timer) clearInterval(timer);
-    };
-
-    const tick = async () => {
-      if (stopped) return;
-      try {
-        const data = await pipeline.getState(threadId);
-        errors = 0;
-        onUpdate(data);
-        if (data.current_step === "human_review" || data.completed) {
-          stop();
-        }
-      } catch (err) {
-        errors += 1;
-        // getState 404s until the first checkpoint exists — keep polling.
-        // After maxErrors consecutive failures, give up and report.
-        if (errors >= maxErrors) {
-          stop();
-          options?.onError?.(err);
-        }
-      }
-    };
-
-    void tick(); // check immediately, don't wait for the first interval
-    timer = setInterval(tick, intervalMs);
-
-    return { stop };
   },
 };
 

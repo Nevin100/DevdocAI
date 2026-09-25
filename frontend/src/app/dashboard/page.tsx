@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   auth,
   repos,
   pipeline,
+  ApiError,
   type Repo,
   type GithubRepo,
 } from "@/src/lib/api";
@@ -118,12 +118,6 @@ export default function DashboardPage() {
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const activePoller = useRef<{ stop: () => void } | null>(null);
-  useEffect(() => {
-    return () => {
-      activePoller.current?.stop();
-    };
-  }, []);
   async function loadRepos() {
     try {
       const data = await repos.list();
@@ -184,25 +178,27 @@ export default function DashboardPage() {
       setRunningRepoName(connected.full_name);
       const { thread_id } = await repos.run(connected.id);
 
-      activePoller.current?.stop();
-      activePoller.current = pipeline.pollState(
-        thread_id,
-        (data) => {
-          if (data.current_step === "human_review" || data.completed) {
-            activePoller.current?.stop();
-            router.push(`/review?thread=${thread_id}`);
-          }
-        },
-        {
-          onError: () => {
-            // Pipeline keeps running in background, still navigate to review
-            router.push(`/review?thread=${thread_id}`);
-          },
-        },
-      );
+      // Use SSE to wait for human_review checkpoint
+      const eventSource = pipeline.streamState(thread_id, (data) => {
+        if (data.current_step === "human_review" || data.completed) {
+          eventSource.close();
+          router.push(`/review?thread=${thread_id}`);
+        }
+      });
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        // Pipeline running in background, still navigate to review
+        router.push(`/review?thread=${thread_id}`);
+      };
     } catch (err) {
       setConnecting(null);
-      // Do NOT setRunningRepoName(null) on error — keep loader visible
+      // 413 = repo-size gate: pipeline never started → close loader, show why.
+      // Other errors: pipeline may be running in background → keep loader visible.
+      if (err instanceof ApiError && err.status === 413) {
+        setRunningRepoName(null);
+        alert(err.message);
+      }
     }
   }
 
@@ -526,29 +522,38 @@ export default function DashboardPage() {
                             const result = await repos.run(repo.id);
                             thread_id = result.thread_id;
 
-                            activePoller.current?.stop();
-                            activePoller.current = pipeline.pollState(
+                            // Use SSE to wait for human_review checkpoint
+                            const eventSource = pipeline.streamState(
                               thread_id,
                               (data) => {
                                 if (
                                   data.current_step === "human_review" ||
                                   data.completed
                                 ) {
-                                  activePoller.current?.stop();
+                                  eventSource.close();
                                   router.push(`/review?thread=${thread_id}`);
                                 }
                               },
-                              {
-                                onError: () => {
-                                  // Pipeline keeps running in background, still navigate to review
-                                  router.push(`/review?thread=${thread_id}`);
-                                },
-                              },
                             );
-                          } catch (err) {
-                            // Pipeline runs in background regardless, navigate to review
-                            if (thread_id) {
+
+                            eventSource.onerror = () => {
+                              eventSource.close();
+                              // Pipeline running in background, still navigate to review
                               router.push(`/review?thread=${thread_id}`);
+                            };
+                          } catch (err) {
+                            // Always close the loader — a stuck modal is never right.
+                            setRunningRepoName(null);
+                            if (thread_id) {
+                              // Pipeline runs in background regardless, navigate to review
+                              router.push(`/review?thread=${thread_id}`);
+                            } else {
+                              // 413 gate message or other startup failure
+                              alert(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Pipeline could not be started.",
+                              );
                             }
                           }
                         }}
