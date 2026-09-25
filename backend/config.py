@@ -26,6 +26,11 @@ class Settings(BaseSettings):
 
     # LLM 
     GROQ_API_KEY: str
+    GROQ_API_KEY_2: str = ""
+    GROQ_API_KEY_3: str = ""
+    GROQ_API_KEY_4: str = ""
+    GROQ_API_KEY_5: str = ""
+    GROQ_API_KEY_6: str = ""
     GROQ_MODEL: str = "openai/gpt-oss-120b"
 
     # Vector Database:

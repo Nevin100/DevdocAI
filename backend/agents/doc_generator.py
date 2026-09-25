@@ -1,21 +1,11 @@
 import re
 import uuid
 import hashlib
-from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from graph.state import DevDocState
-from config import get_settings
 import asyncio
 from groq import RateLimitError
-
-settings = get_settings()
-
-# Groq LLM client
-llm = ChatGroq(
-    api_key=settings.GROQ_API_KEY,
-    model=settings.GROQ_MODEL,
-    temperature=0.3,   # low temp = consistent, structured output
-)
+from utils.groq_pool import make_llm
 
 # In-memory cache for generated docs (content hash -> generated doc)
 # Key: hash of (file_path + module_content + dev_notes_section)
@@ -177,7 +167,7 @@ def _split_batch_response(response_text: str) -> dict[str, str]:
 
 
 async def _generate_docs_for_batch(
-    modules: list[dict], dev_notes_section: str, batch_chain
+    modules: list[dict], dev_notes_section: str
 ) -> dict[str, str]:
     """One LLM call for a whole batch. Returns {file_path: doc_content} (may be partial/empty)."""
     modules_block = "\n".join(_format_module_for_batch(m) for m in modules)
@@ -187,6 +177,9 @@ async def _generate_docs_for_batch(
     async with _llm_semaphore:
         for attempt in range(max_retries):
             try:
+                # Fresh client har attempt pe = har baar nayi rotated key.
+                # 429 aaya to agli key se retry hota hai.
+                batch_chain = DOC_BATCH_PROMPT | make_llm()
                 response = await batch_chain.ainvoke({
                     "count": len(modules),
                     "modules_block": modules_block,
@@ -195,7 +188,7 @@ async def _generate_docs_for_batch(
                 break
             except RateLimitError:
                 wait_time = 2 ** attempt
-                print(f"⏳ Rate limited (batch), waiting {wait_time}s before retry...")
+                print(f"⏳ Rate limited (batch), rotating key, waiting {wait_time}s before retry...")
                 await asyncio.sleep(wait_time)
 
     if response is None:
@@ -205,7 +198,7 @@ async def _generate_docs_for_batch(
     return _split_batch_response(response.content)
 
 
-async def _generate_doc_for_module(module: dict, dev_notes_section: str, chain) -> dict | None:
+async def _generate_doc_for_module(module: dict, dev_notes_section: str) -> dict | None:
     """Generate docs for a single module with retry logic and caching (fallback path)."""
     if "error" in module:
         print(f" Skipping errored module: {module.get('file_path')}")
@@ -231,7 +224,9 @@ async def _generate_doc_for_module(module: dict, dev_notes_section: str, chain) 
     async with _llm_semaphore:
         for attempt in range(max_retries):
             try:
-                response = await chain.ainvoke({
+                # Fresh client har attempt pe = har baar nayi rotated key
+                single_chain = DOC_PROMPT | make_llm()
+                response = await single_chain.ainvoke({
                     "file_path": module["file_path"],
                     "module_name": module["module_name"],
                     "docstring": module.get("docstring") or "No module docstring",
@@ -243,7 +238,7 @@ async def _generate_doc_for_module(module: dict, dev_notes_section: str, chain) 
                 break
             except RateLimitError:
                 wait_time = 2 ** attempt
-                print(f"⏳ Rate limited, waiting {wait_time}s before retry...")
+                print(f"⏳ Rate limited, rotating key, waiting {wait_time}s before retry...")
                 await asyncio.sleep(wait_time)
 
     if response is None:
@@ -275,7 +270,7 @@ async def doc_generator_node(state: DevDocState) -> dict:
     Steps:
     1. Serve cache hits instantly (no LLM call at all)
     2. Batch remaining modules: DOC_BATCH_SIZE modules per LLM call
-       (up to 8 concurrent batches via semaphore)
+       (up to 8 concurrent batches via semaphore, keys rotated per call)
     3. Anything a batch response missed → single-module fallback generation
     4. Return generated_docs list
 
@@ -287,9 +282,6 @@ async def doc_generator_node(state: DevDocState) -> dict:
     dev_notes_section = ""
     if state.review_status == "rejected" and state.dev_notes:
         dev_notes_section = f"**Dev Feedback (incorporate this):** {state.dev_notes}"
-
-    single_chain = DOC_PROMPT | llm
-    batch_chain = DOC_BATCH_PROMPT | llm
 
     # Filter out errored modules upfront
     valid_modules = [m for m in state.parsed_modules if "error" not in m]
@@ -319,7 +311,7 @@ async def doc_generator_node(state: DevDocState) -> dict:
 
     async def _process_batch(batch: list[dict]) -> list[dict]:
         results: list[dict] = []
-        batch_docs = await _generate_docs_for_batch(batch, dev_notes_section, batch_chain)
+        batch_docs = await _generate_docs_for_batch(batch, dev_notes_section)
 
         for module in batch:
             content = batch_docs.get(module["file_path"], "").strip()
@@ -340,7 +332,7 @@ async def doc_generator_node(state: DevDocState) -> dict:
             else:
                 # Fallback: generate individually for anything the batch missed
                 print(f"⚠️ Batch missed {module['file_path']} — retrying individually")
-                single = await _generate_doc_for_module(module, dev_notes_section, single_chain)
+                single = await _generate_doc_for_module(module, dev_notes_section)
                 if single is not None:
                     results.append(single)
                     print(f"✅ Docs generated (fallback): {module['file_path']}")

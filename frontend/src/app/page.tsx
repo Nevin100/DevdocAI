@@ -44,6 +44,9 @@ const STACK = [
   { name: "MCP Protocol", desc: "IDE & external tool context" },
 ];
 
+const ROADMAP_NOW = ["Python"];
+const ROADMAP_NEXT = ["JavaScript", "TypeScript", "Go", "Java", "C++"];
+
 export default function Home() {
   return (
     <main className="relative min-h-screen bg-base-100 text-base-content selection:bg-primary/25 selection:text-primary antialiased">
@@ -55,6 +58,16 @@ export default function Home() {
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] bg-[size:4rem_4rem] text-base-content/[0.04] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
 
         <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-12 sm:pb-28 sm:pt-24">
+          {/* Version badge */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-mono text-[11px] font-bold text-primary">
+              v1 · FIRST RELEASE
+            </span>
+            <span className="rounded-full border border-base-content/15 bg-base-200/60 px-3 py-1 font-mono text-[11px] text-base-content/70">
+              Python codebases supported
+            </span>
+          </div>
+
           {/* Heading */}
           <h1 className="mt-7 max-w-4xl font-display text-4xl font-bold tracking-tight text-base-content sm:text-6xl sm:leading-[1.12]">
             Self-updating documentation, anchored directly in your code’s AST.
@@ -64,6 +77,11 @@ export default function Home() {
             Stop asking engineers to update stale wikis. DevDocAI listens to PR merges,
             extracts syntactic symbols, and writes accurate technical architecture drafts.
             Nothing ships without manual approval.
+          </p>
+
+          <p className="mt-4 max-w-2xl font-mono text-xs leading-relaxed text-base-content/50">
+            NOTE: v1 parses Python files only. JavaScript, TypeScript, Go, Java and C++
+            support ships in the next major version — see roadmap below.
           </p>
 
           {/* CTAs */}
@@ -214,6 +232,56 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Language Roadmap */}
+      <section className="border-b border-base-content/10">
+        <div className="mx-auto max-w-5xl px-6 py-20">
+          <span className="font-mono text-xs uppercase tracking-widest text-primary font-bold">
+            Roadmap
+          </span>
+          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-base-content sm:text-4xl">
+            Python today. Five more languages next.
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-base-content/70 sm:text-base">
+            v1 ships with a full Python AST parser. The next major version brings
+            dedicated parsers and handling for every language below — same pipeline,
+            same human-review gate.
+          </p>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2">
+            <div className="rounded-2xl border border-success/30 bg-success/5 p-6">
+              <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-success">
+                Supported in v1
+              </span>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {ROADMAP_NOW.map((lang) => (
+                  <span
+                    key={lang}
+                    className="rounded-lg border border-success/40 bg-success/10 px-3 py-1.5 font-mono text-sm font-bold text-base-content"
+                  >
+                    {lang}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-base-content/10 bg-base-200/40 p-6">
+              <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-base-content/50">
+                Coming in v2
+              </span>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {ROADMAP_NEXT.map((lang) => (
+                  <span
+                    key={lang}
+                    className="rounded-lg border border-dashed border-base-content/25 bg-base-300/30 px-3 py-1.5 font-mono text-sm text-base-content/60"
+                  >
+                    {lang}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Bottom CTA Block */}
       <section className="relative overflow-hidden py-24">
         <div className="mx-auto max-w-5xl px-6 text-center">
@@ -224,7 +292,7 @@ export default function Home() {
             Never explain the same auth middleware twice.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-base-content/70 sm:text-base">
-            Point DevDocAI to your repository and receive comprehensive,
+            Point DevDocAI to your Python repository and receive comprehensive,
             syntax-checked docs in under 3 minutes.
           </p>
 
@@ -251,6 +319,7 @@ export default function Home() {
             <span>— Open deterministic code doc platform</span>
           </div>
           <div className="flex items-center gap-4 font-mono text-[11px]">
+            <span>v1 · PYTHON ONLY</span>
             <span>STATUS: ALL RUNNERS HEALTHY</span>
           </div>
         </div>

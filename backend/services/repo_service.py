@@ -1,3 +1,4 @@
+import os
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,16 @@ from graph.state import DevDocState
 from graph.pipeline import get_compiled_pipeline, run_pipeline
 
 _background_tasks: set[asyncio.Task] = set()
+
+
+def _count_python_files(repo_full_name: str, encrypted_token: str, ref: str) -> int:
+    """GitHub recursive tree se .py file count — sirf 1-2 API calls, ~1 second."""
+    from github import Github
+    from utils.encryption import decrypt
+    gh = Github(decrypt(encrypted_token))
+    repo = gh.get_repo(repo_full_name)
+    tree = repo.get_git_tree(ref, recursive=True)
+    return sum(1 for e in tree.tree if e.type == "blob" and e.path.endswith(".py"))
 
 
 async def _run_pipeline_bg(initial_state: DevDocState, pipeline_run_id: uuid.UUID):
@@ -101,6 +112,30 @@ class RepoService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="GitHub account not linked",
+            )
+
+        # 🚧 Repo size gate — 40+ Python files wale repos abhi supported nahi.
+        # Pipeline start karne se PEHLE hi saaf message de do, taaki user
+        # 7-8 minute wait karke silent fail na dekhe.
+        MAX_REPO_FILES = int(os.getenv("MAX_REPO_FILES", "40"))
+        try:
+            file_count = await asyncio.to_thread(
+                _count_python_files,
+                repo.full_name,
+                user.github_access_token,
+                repo.default_branch or "main",
+            )
+        except Exception as e:
+            print(f"⚠️ File-count check failed, proceeding anyway: {e}")
+            file_count = 0
+        if file_count > MAX_REPO_FILES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=(
+                    f"This repository has {file_count} Python files. DevDocAI currently "
+                    f"supports up to {MAX_REPO_FILES} files (medium-size projects). "
+                    "Large-repository support is under development — please try a smaller repo."
+                ),
             )
 
         thread_id = str(uuid.uuid4())
