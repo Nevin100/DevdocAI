@@ -117,6 +117,7 @@ export default function DashboardPage() {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function loadRepos() {
     try {
@@ -193,11 +194,9 @@ export default function DashboardPage() {
       };
     } catch (err) {
       setConnecting(null);
-      // 413 = repo-size gate: pipeline never started → close loader, show why.
-      // Other errors: pipeline may be running in background → keep loader visible.
       if (err instanceof ApiError && err.status === 413) {
         setRunningRepoName(null);
-        alert(err.message);
+        setErrorMessage(err.message);
       }
     }
   }
@@ -501,7 +500,9 @@ export default function DashboardPage() {
                             );
                             router.push(`/review?thread=${thread_id}`);
                           } catch {
-                            alert("Could not load latest run session.");
+                            setErrorMessage(
+                              "Could not load latest run session.",
+                            );
                             setReviewLoadingId(null);
                           }
                         }}
@@ -549,7 +550,7 @@ export default function DashboardPage() {
                               router.push(`/review?thread=${thread_id}`);
                             } else {
                               // 413 gate message or other startup failure
-                              alert(
+                              setErrorMessage(
                                 err instanceof Error
                                   ? err.message
                                   : "Pipeline could not be started.",
@@ -689,6 +690,35 @@ export default function DashboardPage() {
                   );
                 })
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Error Dialog */}
+      {errorMessage && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-base-300/60 px-4 backdrop-blur-md"
+          onClick={() => setErrorMessage(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-3xl border border-error/30 bg-base-100 p-6 shadow-2xl"
+          >
+            <h2 className="font-display text-base font-bold text-error">
+              Something went wrong
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-base-content/70">
+              {errorMessage}
+            </p>
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setErrorMessage(null)}
+                className="btn btn-primary btn-sm rounded-xl px-5 normal-case"
+              >
+                OK
+              </button>
             </div>
           </div>
         </div>

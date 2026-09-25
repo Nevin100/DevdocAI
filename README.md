@@ -1,4 +1,4 @@
-# DevDocxAI 🤖📄
+# DevDocAI 📄
 
 >DevDocxAi is a production-grade multi-agent LangGraph system that automatically generates and updates engineering documentation from your GitHub codebase.
 
@@ -10,6 +10,12 @@
 ![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen?style=flat-square)
 
 ---
+
+
+
+
+---
+🌐 Live: devdocai.nevinbali.me
 
 ## 🚨 The Problem:
 
@@ -31,9 +37,11 @@ Not intentionally. Code moves fast, documentation doesn't.
 - 🔍 **Connects to your GitHub repo** via OAuth
 - 🌳 **Parses your codebase at the AST level** — understands functions, classes, modules
 - 📝 **Auto-generates structured documentation** per module and function
-- 🔄 **Updates docs on every PR merge** via GitHub webhooks
+- 🔄 **Updates docs on every PR merge** via GitHub webhooks (diff-aware — only changed files re-documented)
 - 👀 **Human-in-the-Loop review** — you approve before anything goes live
 - 💬 **Onboarding chatbot** — new devs ask questions, get answers from live code
+- ⚡ **Multi-key LLM pool** — round-robin across up to 10 Groq keys for speed + 429 resilience
+- 📏 **Repo size gate** — rejects repos with 40+ Python files up front instead of timing out
 
 ---
 
@@ -42,21 +50,23 @@ Not intentionally. Code moves fast, documentation doesn't.
 ```
 START
   ↓
+compute_diff         ← diffs against last processed commit (only changed files)
+  ↓
 codebase_parser      ← AST-level parsing of GitHub repo
   ↓
-doc_generator        ← LLM generates structured docs per module/function
+doc_generator        ← LLM generates structured docs per module (batched, multi-key pool)
   ↓
-tavily_researcher    ← enriches with external context (libraries, best practices)
+brave_researcher     ← enriches with external context via Tavily (libraries, best practices)
   ↓
-HITL checkpoint      ← dev reviews generated docs before publish
+HITL checkpoint      ← dev reviews generated docs before publish (interrupt_before human_review)
   ↓
-doc_publisher        ← saves to DB + updates vector store
-  ↓
-pr_watcher           ← GitHub webhook re-triggers on every PR merge
+doc_publisher        ← saves to DB + batch upserts vectors to Qdrant
   ↓
 END
 
 Parallel → onboarding_chatbot ← RAG over vector store for new devs
+Webhook → pr_watcher           ← GitHub webhook re-triggers on every PR merge
+
 ```
 
 ---
@@ -68,12 +78,11 @@ Parallel → onboarding_chatbot ← RAG over vector store for new devs
 | **Agent Framework** | LangGraph (multi-agent, HITL, checkpointing) |
 | **Backend** | FastAPI + Python 3.12 |
 | **Frontend** | Next.js + Tailwind CSS + Daisy UI|
-| **LLM** | Groq — openai/gpt-oss-120b |
-| **Embeddings** | Cohere embed-english-v3.0 |
+| **LLM** | Groq — openai/gpt-oss-120b (multi-key round-robin pool) |
+| **Embeddings** | sentence-transformers all-MiniLM-L6-v2 (384-dim) |
 | **Vector DB** | Qdrant |
 | **Database** | PostgreSQL (Neon prod ) |
 | **Cache** | Redis (Upstash) |
-| **Storage** | AWS S3 |
 | **Web Search** | Tavily Search API |
 | **Observability** | LangSmith |
 | **Tool Protocol** | MCP (Model Context Protocol) |
@@ -81,7 +90,7 @@ Parallel → onboarding_chatbot ← RAG over vector store for new devs
 | **Package Manager** | uv |
 | **Deployment** | AWS ECR + ECS Fargate |
 | **CI/CD** | GitHub Actions |
-
+| **34 Themes Support** | Daisy UI |
 ---
 
 ## 📁 Project Structure
@@ -89,51 +98,84 @@ Parallel → onboarding_chatbot ← RAG over vector store for new devs
 ```
 devdocai/
 ├── backend/
+│   ├── agents/
+│   │   ├── codebase_parser.py      ← AST-level parsing of GitHub repo
+│   │   ├── compute_diff.py         ← diff vs last_processed_commit
+│   │   ├── doc_generator.py        ← batched LLM doc generation (multi-key pool)
+│   │   ├── brave_researcher.py     ← Tavily enrichment
+│   │   ├── doc_publisher.py        ← DB save + Qdrant batch upsert
+│   │   └── onboarding_chatbot.py   ← RAG chatbot over vector store
 │   ├── auth/
 │   │   ├── jwt.py                  ← JWT create/verify
 │   │   ├── github_oauth.py         ← GitHub OAuth flow
 │   │   └── routes.py               ← HTTP layer only
+│   ├── chat/
+│   │   └── routes.py               ← onboarding chatbot endpoints
+│   ├── pipeline/
+│   │   └── routes.py               ← pipeline run + SSE streaming endpoints
+│   ├── repos/
+│   │   └── routes.py               ← repo connect/run endpoints (40-file gate here)
 │   ├── db/
 │   │   ├── database.py             ← async PostgreSQL engine
 │   │   └── models.py               ← SQLAlchemy ORM models
 │   ├── repositories/
-│   │   └── user_repository.py      ← all DB queries isolated here
+│   │   ├── user_repository.py      ← user DB queries
+│   │   └── repo_repository.py      ← repo/run DB queries
 │   ├── schemas/
-│   │   └── auth_schemas.py         ← Pydantic v2 request/response models
+│   │   ├── auth_schema.py
+│   │   ├── chat_schemas.py
+│   │   ├── pipeline_schemas.py
+│   │   └── repo_schemas.py         ← Pydantic v2 request/response models
 │   ├── services/
-│   │   └── auth_service.py         ← business logic layer
+│   │   ├── auth_service.py
+│   │   ├── chat_service.py
+│   │   ├── pipeline_service.py     ← background pipeline orchestration
+│   │   └── repo_service.py         ← business logic layer
 │   ├── utils/
+│   │   ├── groq_pool.py            ← multi-key round-robin Groq pool
 │   │   ├── helper_auth.py          ← bcrypt password helpers
 │   │   └── encryption.py           ← Fernet encryption for tokens
 │   ├── mcp/
 │   │   └── github_server.py        ← GitHub tools for LangGraph agents
-│   ├── agents/
-│   │   ├── codebase_parser.py
-│   │   ├── doc_generator.py
-│   │   ├── brave_researcher.py
-│   │   ├── doc_publisher.py
-│   │   └── onboarding_chatbot.py
 │   ├── graph/
-│   │   ├── state.py
-│   │   ├── pipeline.py
-│   │   └── hitl.py
+│   │   ├── state.py                ← shared pipeline state
+│   │   ├── pipeline.py             ← LangGraph builder + edges
+│   │   └── hitl.py                 ← human-in-the-loop helpers
 │   ├── webhooks/
 │   │   └── github_pr.py            ← PR merge webhook handler
 │   ├── cache/
 │   │   └── redis_client.py         ← Upstash Redis caching
 │   ├── vectorstore/
-│   │   ├── embeddings.py
-│   │   └── qdrant_store.py
+│   │   ├── embeddings.py           ← HF MiniLM embedding client
+│   │   └── qdrant_store.py         ← Qdrant batch upsert/search
 │   ├── config.py                   ← all env vars, pydantic-settings
+│   ├── create_index.py             ← one-off Qdrant index setup
 │   └── main.py                     ← FastAPI app entry point
-├── frontend/                       ← Phase 6
-│   ├── app/
-│   │   ├── dashboard/
-│   │   ├── review/                 ← HITL review panel
-│   │   └── chat/                   ← onboarding chatbot UI
+├── frontend/                       ← Next.js 16 + DaisyUI
+│   └── src/
+│       ├── app/
+│       │   ├── page.tsx            ← landing page
+│       │   ├── login/              ← login page
+│       │   ├── signup/             ← signup page
+│       │   ├── auth/callback/      ← GitHub OAuth callback
+│       │   ├── dashboard/          ← connected repos grid
+│       │   ├── review/             ← HITL review panel
+│       │   ├── chat/               ← onboarding chatbot UI
+│       │   ├── blogs/              ← blog listing
+│       │   └── theme/              ← theme picker
+│       ├── components/
+│       │   ├── Navbar.tsx
+│       │   ├── PipelineLoader.tsx  ← global pipeline progress modal
+│       │   ├── PipelineStrip.tsx   ← per-run progress strip
+│       │   ├── ThemeProvider.tsx
+│       │   └── ThemeDemoCard.tsx
+│       └── lib/
+│           ├── api.ts              ← typed API client (ApiError with status)
+│           └── validation.ts
 └── .github/
     └── workflows/
-        └── deploy.yml              ← Phase 7
+        └── deploy.yml              ← build → ECR → ECS Fargate deploy
+
 ```
 
 ---
@@ -152,6 +194,10 @@ Repository  →  DB queries only
 Database
 ```
 
+Deployment
+```
+push → GitHub Actions → ECR (:latest) → ECS Fargate (web + background workers in one task)
+```
 ---
 
 ## 🚀 Getting Started
@@ -162,6 +208,7 @@ Database
 - [uv](https://docs.astral.sh/uv/) — fast Python package manager just like pip
 - Docker (for local PostgreSQL)
 - A GitHub OAuth App ([create one here](https://github.com/settings/developers))
+- Node 20+ (for the frontend)
 
 ### 1. Clone the repo
 
@@ -170,9 +217,10 @@ git clone https://github.com/Nevin100/DevDocxAI.git
 cd DevDocxAI/backend
 ```
 
-### 2. Install dependencies
+### 2. Backend Setup
 
 ```bash
+cd backend
 uv venv
 # Windows
 .venv\Scripts\activate
@@ -180,6 +228,7 @@ uv venv
 source .venv/bin/activate
 
 uv add -r requirements.txt
+
 ```
 
 ### 3. Setup environment variables
@@ -215,19 +264,29 @@ docker run -d \
 ### 5. Run the server
 
 ```bash
-# Windows
+## Windows
 .venv\Scripts\python.exe -m uvicorn main:app --reload
 
 # Mac/Linux
 uvicorn main:app --reload
-```
-
-### 6. Open Swagger UI
 
 ```
-http://localhost:8000/docs
+
+### 6. Run the frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
+### 7. Open the app
+
+```bash
+Frontend:  http://localhost:3000
+Swagger:   http://localhost:8000/docs
+
+```
 ---
 
 ## 🔑 Environment Variables
@@ -241,10 +300,10 @@ http://localhost:8000/docs
 | `LANGCHAIN_API_KEY` | ✅ | From [smith.langchain.com](https://smith.langchain.com) |
 | `GITHUB_CLIENT_ID` | ✅ | GitHub OAuth App |
 | `GITHUB_CLIENT_SECRET` | ✅ | GitHub OAuth App |
-| `COHERE_API_KEY` | ✅ | From [cohere.com](https://cohere.com) |
 | `TAVILY_API_KEY` | ✅ | From [tavily.com](https://brave.com/search/api) |
+| `GROQ_API_KEY_2 .. GROQ_API_KEY_6` | ⬜ | Optional extra keys — pool round-robins for speed + 429 resilience |
+| `MAX_REPO_FILES` | ⬜ | Repo-size gate, default 40 (repos above this return 413) |
 | `REDIS_URL` | ✅ | From upstash REDIS URL |
-| `AWS_ACCESS_KEY_ID` | ⏳ Phase 7 | S3 storage |
 
 ---
 
@@ -256,10 +315,11 @@ User
          ├── Document        (DocStatus: PENDING → APPROVED → PUBLISHED)
          └── PipelineRun     (trigger: manual | pr_merge | webhook)
 ```
+repositories.last_processed_commit tracks the diff base so re-runs only re-document changed files.
 
 ---
 
-## 🛣️ Roadmap
+## 🛣️ Roadmap (V1)
 
 | Phase | What | Status |
 |---|---|---|
@@ -269,8 +329,13 @@ User
 | **Phase 4** | Agents (Parser, Generator, Researcher, Chatbot) | ✅ Complete |
 | **Phase 5** | Webhooks + Redis Cache | ✅ Complete |
 | **Phase 6** | Next.js Frontend | ✅ Complete |
-| **Phase 7** | Docker + ECR/ECS Fargate + CI/CD | 🔨 Completing!! |
+| **Phase 7** | Docker + ECR/ECS Fargate + CI/CD | ✅ Complete |
 
+## 🛣️ Roadmap (V2)
+| Phase | What | Status |
+|---|---|---|
+| **Phase I** | JavaScript, TypeScript, Go, Java, C++ support | 🔜 Planned |
+| **Phase II** | Large-repo support (40+ files) | 🔜 Planned |
 ---
 
 ## 📖 Blog Series
@@ -288,7 +353,7 @@ Following the build in public on dev.to:
 
 ## 🤝 Contributing
 
-This project is under active development. Feel free to open issues or PRs.
+This project is completed i.e The first version is now live!!. Feel free to open issues or PRs.
 
 ---
 

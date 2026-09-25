@@ -58,19 +58,20 @@ export default function Home() {
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] bg-[size:4rem_4rem] text-base-content/[0.04] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
 
         <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-12 sm:pb-28 sm:pt-24">
-          {/* Version badge */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-mono text-[11px] font-bold text-primary">
-              v1 · FIRST RELEASE
+          {/* Product name with version */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-display text-lg font-black tracking-tight text-base-content">
+              DevDocAI <span className="text-primary">v1</span>
             </span>
-            <span className="rounded-full border border-base-content/15 bg-base-200/60 px-3 py-1 font-mono text-[11px] text-base-content/70">
-              Python codebases supported
+            <span className="rounded-full border border-warning/40 bg-warning/10 px-3 py-1 font-mono text-[11px] font-bold text-warning">
+              Python files only
             </span>
           </div>
 
           {/* Heading */}
           <h1 className="mt-7 max-w-4xl font-display text-4xl font-bold tracking-tight text-base-content sm:text-6xl sm:leading-[1.12]">
-            Self-updating documentation, anchored directly in your code’s AST.
+            Self-updating documentation for Python codebases, anchored directly
+            in your code&apos;s AST.
           </h1>
 
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-base-content/70 sm:text-lg">
@@ -80,8 +81,9 @@ export default function Home() {
           </p>
 
           <p className="mt-4 max-w-2xl font-mono text-xs leading-relaxed text-base-content/50">
-            NOTE: v1 parses Python files only. JavaScript, TypeScript, Go, Java and C++
-            support ships in the next major version — see roadmap below.
+            NOTE: v1 parses <span className="text-base-content font-bold">.py files only</span> —
+            every other language is skipped. JavaScript, TypeScript, Go, Java and C++
+            support ships in v2 — see roadmap below.
           </p>
 
           {/* CTAs */}
@@ -164,7 +166,7 @@ export default function Home() {
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-base-content/70 sm:text-base">
               A four-stage deterministic cycle that guarantees LLMs never invent
-              endpoints, parameters, or behaviors that don’t exist in source.
+              endpoints, parameters, or behaviors that don&apos;t exist in source.
             </p>
           </div>
 
@@ -292,7 +294,7 @@ export default function Home() {
             Never explain the same auth middleware twice.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-base-content/70 sm:text-base">
-            Point DevDocAI to your Python repository and receive comprehensive,
+            Point DevDocAI at your Python repository and receive comprehensive,
             syntax-checked docs in under 3 minutes.
           </p>
 

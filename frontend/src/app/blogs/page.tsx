@@ -59,6 +59,15 @@ const BLOG_SERIES: BlogPost[] = [
     status: "Published",
     tags: ["OAuth2", "Security", "Production", "Docker"],
   },
+  {
+    part: "Part 6",
+    title: "Part 6 — The Full Loop Works. Now: Deployment...",
+    tagline: "`it ran once` to `it's about to run in production....`",
+    url: "https://dev.to/nevin100/building-devdocai-part-6-the-full-loop-works-now-deployment-3a49",
+    platform: "devto",
+    status: "Published",
+    tags: ["Langgraph", "rag", "opensource", "fastapi", "Daisy UI"],
+  },
 ];
 
 const ROADMAP_PHASES = [
