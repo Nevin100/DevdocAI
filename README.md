@@ -11,8 +11,7 @@
 
 ---
 
-
-
+<img width="1273" height="600" alt="landing-page" src="https://github.com/user-attachments/assets/5f266f70-f059-4f7c-9d4b-a7e0d6f865c3" />
 
 ---
 🌐 Live: devdocai.nevinbali.me
