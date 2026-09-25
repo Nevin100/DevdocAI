@@ -348,7 +348,7 @@ Following the build in public on dev.to:
 - [Part 4 — Coming Back, Closing Out the Backend, and Laying Down the Frontend](https://dev.to/nevin100/building-devdocai-a-production-multi-agent-langgraph-system-part-4-coming-back-closing-out-5aa9)
 - [Part 5 — Backend Closed Out, GitHub OAuth Working End-to-End](https://dev.to/nevin100/building-devdocai-a-production-multi-agent-langgraph-system-part-5-backend-closed-out-github-216o)
 - [Part 6 — The Full Loop Works. Now: Deployment...](https://dev.to/nevin100/building-devdocai-part-6-the-full-loop-works-now-deployment-3a49)
-
+- [Part 7 — From Laptop to Production: The Deployment Gauntlet](https://dev.to/nevin100/building-devdocai-a-production-multi-agent-langgraph-system-part-7-from-laptop-to-production-3p4m)
 ---
 
 ## 🤝 Contributing

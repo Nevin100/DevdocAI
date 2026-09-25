@@ -68,6 +68,15 @@ const BLOG_SERIES: BlogPost[] = [
     status: "Published",
     tags: ["Langgraph", "rag", "opensource", "fastapi", "Daisy UI"],
   },
+  {
+    part: "Part 7",
+    title: "Part 7 — From Laptop to Production: The Deployment Gauntlet",
+    tagline: "`it works on my laptop` to `it's live in production....`",
+    url: "https://dev.to/nevin100/building-devdocai-a-production-multi-agent-langgraph-system-part-7-from-laptop-to-production-3p4m",
+    platform: "devto",
+    status: "Published",
+    tags: ["aws", "cicd", "opensource", "ecr", "fastapi"],
+  },
 ];
 
 const ROADMAP_PHASES = [
@@ -77,7 +86,7 @@ const ROADMAP_PHASES = [
   { phase: "Phase 4", title: "Agent Specialization", desc: "codebase_parser, doc_generator, brave_researcher, chatbot", status: "Done" },
   { phase: "Phase 5", title: "Webhooks & Redis Cache", desc: "pr_watcher webhook listeners & Upstash state caching", status: "Done" },
   { phase: "Phase 6", title: "Next.js UI & HITL Deck", desc: "Developer cockpit, live markdown viewer, chat onboarding", status: "Active" },
-  { phase: "Phase 7", title: "AWS Deployment & CI/CD", desc: "ECR, ECS Fargate containers & GitHub Actions workflows", status: "Upcoming" },
+  { phase: "Phase 7", title: "AWS Deployment & CI/CD", desc: "ECR, ECS Fargate containers & GitHub Actions workflows", status: "Active" },
 ];
 
 export default function BuildInPublicPage() {
